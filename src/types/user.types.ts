@@ -1,0 +1,80 @@
+import { z } from "zod";
+
+const UserTypeEnum = z.enum(["individual", "employee", "admin"]);
+const userStatusEnum = z.enum(["active", "inactive", "suspended"]);
+const UserSubscriptionTierEnum = z.enum(["free", "family", "corporate"]);
+const PhoneNumberSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/);
+
+export const UserRowSchema = z.object({
+  id: z.uuid(),
+  phone_number: PhoneNumberSchema,
+  phone_verified: z.boolean(),
+  verification_code: z.string().length(6),
+  verification_code_expires_at: z.iso.datetime(),
+  email: z.email(),
+  first_name: z.string().min(2).max(100),
+  profile_image_url: z.url(),
+  user_type: UserTypeEnum.default("individual"),
+  subscription_tier: UserSubscriptionTierEnum.default("free"),
+  subscription_expires_at: z.iso.datetime(),
+  last_login_at: z.iso.datetime(),
+  profile_completion_score: z.number().int().min(0).max(100).default(10),
+  fcm_token: z.string(),
+  device_id: z.string().length(255),
+  status: userStatusEnum.default("active"),
+  location_sharing_consent: z.boolean().default(true),
+  created_at: z.iso.datetime(),
+  updated_at: z.iso.datetime(),
+});
+
+export const UserInsertSchema = UserRowSchema.pick({
+  phone_number: true,
+  phone_verified: true,
+  user_type: true,
+  subscription_tier: true,
+  subscription_expires_at: true,
+  device_id: true,
+  status: true,
+});
+
+export const UserUpdateSchema = UserRowSchema.omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+}).partial();
+
+export const UserDeleteSchema = UserRowSchema.pick({
+  id: true,
+});
+
+export type UserRow = z.infer<typeof UserRowSchema>;
+export type UserInsert = z.infer<typeof UserInsertSchema>;
+export type UserUpdate = z.infer<typeof UserUpdateSchema>;
+export type UserDelete = z.infer<typeof UserDeleteSchema>;
+
+export interface Database {
+  public: {
+    Tables: {
+      users: {
+        Row: UserRow;
+        insert: UserInsert;
+        update: UserUpdate;
+        delete: UserDelete;
+      };
+    };
+  };
+}
+
+const ReadUserDTOSchema = UserRowSchema.pick({
+  id: true,
+  email: true,
+  first_name: true,
+  phone_number: true,
+  phone_verified: true,
+  user_type: true,
+  subscription_tier: true,
+  last_login_at: true,
+  status: true,
+});
+
+export type ReadUserDTO = z.infer<typeof ReadUserDTOSchema>;
