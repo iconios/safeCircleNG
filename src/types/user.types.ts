@@ -3,7 +3,7 @@ import { z } from "zod";
 const UserTypeEnum = z.enum(["individual", "employee", "admin"]);
 const userStatusEnum = z.enum(["active", "inactive", "suspended"]);
 const UserSubscriptionTierEnum = z.enum(["free", "family", "corporate"]);
-const PhoneNumberSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/);
+export const PhoneNumberSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/);
 
 export const UserRowSchema = z.object({
   id: z.uuid(),
@@ -11,6 +11,7 @@ export const UserRowSchema = z.object({
   phone_verified: z.boolean(),
   verification_code: z.string().length(6),
   verification_code_expires_at: z.iso.datetime(),
+  failed_attempt_count: z.number().default(0),
   email: z.email(),
   first_name: z.string().min(2).max(100),
   profile_image_url: z.url(),
@@ -28,6 +29,7 @@ export const UserRowSchema = z.object({
 });
 
 export const UserInsertSchema = UserRowSchema.pick({
+  id: true,
   phone_number: true,
   phone_verified: true,
   user_type: true,
@@ -35,6 +37,8 @@ export const UserInsertSchema = UserRowSchema.pick({
   subscription_expires_at: true,
   device_id: true,
   status: true,
+  verification_code: true,
+  verification_code_expires_at: true,
 });
 
 export const UserUpdateSchema = UserRowSchema.omit({
