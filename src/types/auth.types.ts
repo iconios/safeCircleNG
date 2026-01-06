@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PhoneNumberSchema } from "./user.types";
+import { PhoneNumberSchema, VerificationCodeSchema } from "./user.types.ts";
 
 export const SignUpDataDTOSchema = z
   .object({
@@ -9,3 +9,12 @@ export const SignUpDataDTOSchema = z
   .strict();
 
 export type SignUpDataDTO = z.infer<typeof SignUpDataDTOSchema>;
+
+export const VerifyOtpDataSchema = z
+  .object({
+    phone_number: PhoneNumberSchema,
+    otp: VerificationCodeSchema,
+  })
+  .strict();
+
+export type VerifyOtpDataDTO = z.infer<typeof VerifyOtpDataSchema>;

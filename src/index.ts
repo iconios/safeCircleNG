@@ -5,6 +5,9 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT;
+if (!PORT) {
+  throw new Error("PORT configuration missing");
+}
 
 app.use(cors());
 app.use(express.json());

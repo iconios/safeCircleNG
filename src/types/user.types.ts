@@ -1,16 +1,22 @@
 import { z } from "zod";
 
 const UserTypeEnum = z.enum(["individual", "employee", "admin"]);
-const userStatusEnum = z.enum(["active", "inactive", "suspended"]);
+const userStatusEnum = z.enum([
+  "pending_verification",
+  "active",
+  "inactive",
+  "suspended",
+]);
 const UserSubscriptionTierEnum = z.enum(["free", "family", "corporate"]);
-export const PhoneNumberSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/);
+export const PhoneNumberSchema = z.string().regex(/^234\d{11}$/);
+export const VerificationCodeSchema = z.string().regex(/^\d{6}$/);
 
 export const UserRowSchema = z.object({
   id: z.uuid(),
   phone_number: PhoneNumberSchema,
   phone_verified: z.boolean(),
-  verification_code: z.string().length(6),
-  verification_code_expires_at: z.iso.datetime(),
+  last_otp_requested_at: z.iso.datetime(),
+  otp_locked_until: z.iso.datetime(),
   failed_attempt_count: z.number().default(0),
   email: z.email(),
   first_name: z.string().min(2).max(100),
@@ -22,7 +28,7 @@ export const UserRowSchema = z.object({
   profile_completion_score: z.number().int().min(0).max(100).default(10),
   fcm_token: z.string(),
   device_id: z.string().length(255),
-  status: userStatusEnum.default("active"),
+  status: userStatusEnum.default("pending_verification"),
   location_sharing_consent: z.boolean().default(true),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
@@ -37,15 +43,18 @@ export const UserInsertSchema = UserRowSchema.pick({
   subscription_expires_at: true,
   device_id: true,
   status: true,
-  verification_code: true,
-  verification_code_expires_at: true,
 });
 
 export const UserUpdateSchema = UserRowSchema.omit({
   id: true,
   created_at: true,
   updated_at: true,
-}).partial();
+})
+  .partial()
+  .extend({
+    last_otp_requested_at: z.iso.datetime(),
+    otp_locked_until: z.iso.datetime(),
+  });
 
 export const UserDeleteSchema = UserRowSchema.pick({
   id: true,

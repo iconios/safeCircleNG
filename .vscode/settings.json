@@ -1,0 +1,22 @@
+{
+  "deno.enablePaths": ["./supabase/functions"],
+  "deno.enable": false,
+  "deno.lint": true,
+  "deno.config": "./supabase/functions/deno.json",
+  "deno.unstable": [
+    "bare-node-builtins",
+    "byonm",
+    "sloppy-imports",
+    "unsafe-proto",
+    "webgpu",
+    "broadcast-channel",
+    "worker-options",
+    "cron",
+    "kv",
+    "ffi",
+    "fs",
+    "http",
+    "net"
+  ],
+  "typescript.validate.enable": true
+}

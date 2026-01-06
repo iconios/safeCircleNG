@@ -1,12 +1,20 @@
 import axios from "axios";
-import * as dotenv from "dotenv";
-dotenv.config();
+import { supabaseAdmin } from "../config/supabase";
 
 const TERMII_API_KEY = process.env.TERMII_API_KEY;
 const senderID = process.env.SMS_SENDER_ID;
 const TERMII_BASE_URL = process.env.TERMII_BASE_URL;
 
-const SendSMSUtil = async (phoneNumber: string, OTP: string, name?: string) => {
+const SendSMSUtil = async (
+  phoneNumber: string,
+  OTP: string,
+  userId: string,
+  name?: string,
+) => {
+  if (!TERMII_API_KEY || !TERMII_BASE_URL || !senderID) {
+    throw new Error("SMS provider configuration missing");
+  }
+
   const url = `${TERMII_BASE_URL}/api/sms/send`;
   const data = {
     to: phoneNumber,
@@ -18,14 +26,38 @@ const SendSMSUtil = async (phoneNumber: string, OTP: string, name?: string) => {
   };
 
   try {
-    const response = await axios.post(url, data, {
+    await axios.post(url, data, {
       headers: {
         "Content-Type": "application/json",
       },
     });
-    console.log("SMS sent successfully:", response.data);
+    console.log("SMS sent successfully:", {
+      phoneNumber,
+      provider: "termii",
+    });
   } catch (error) {
     console.error("Error sending SMS", error);
+    await supabaseAdmin
+      .from("users")
+      .update({
+        verification_code: null,
+        verification_expires_at: null,
+      })
+      .eq("id", userId);
+
+    return {
+      success: false,
+      message: "Failed to send OTP. Please try again",
+      data: {},
+      error: {
+        code: "SMS_FAILED",
+        details: "Error sending SMS",
+      },
+      metadata: {
+        timestamp: new Date().toISOString(),
+        phoneNumber,
+      },
+    };
   }
 };
 

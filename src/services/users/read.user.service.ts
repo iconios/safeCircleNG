@@ -7,7 +7,7 @@
 */
 
 import { supabase } from "../../config/supabase";
-import { ReadUserDTO, UserRow } from "../../types/user.types";
+import { ReadUserDTO } from "../../types/user.types";
 
 const ReadUserService = async (userId: string) => {
   try {
