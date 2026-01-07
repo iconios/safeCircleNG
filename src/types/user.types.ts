@@ -8,22 +8,22 @@ const userStatusEnum = z.enum([
   "suspended",
 ]);
 const UserSubscriptionTierEnum = z.enum(["free", "family", "corporate"]);
-export const PhoneNumberSchema = z.string().regex(/^234\d{11}$/);
+export const PhoneNumberSchema = z.string().regex(/^234\d{10}$/);
 export const VerificationCodeSchema = z.string().regex(/^\d{6}$/);
 
 export const UserRowSchema = z.object({
   id: z.uuid(),
   phone_number: PhoneNumberSchema,
-  phone_verified: z.boolean(),
+  phone_verified: z.boolean().default(false),
   last_otp_requested_at: z.iso.datetime(),
   otp_locked_until: z.iso.datetime(),
-  failed_attempt_count: z.number().default(0),
+  failed_attempt_count: z.number().int().min(0).default(0),
   email: z.email(),
   first_name: z.string().min(2).max(100),
   profile_image_url: z.url(),
   user_type: UserTypeEnum.default("individual"),
   subscription_tier: UserSubscriptionTierEnum.default("free"),
-  subscription_expires_at: z.iso.datetime(),
+  subscription_expires_at: z.iso.datetime().nullable(),
   last_login_at: z.iso.datetime(),
   profile_completion_score: z.number().int().min(0).max(100).default(10),
   fcm_token: z.string(),
@@ -51,10 +51,6 @@ export const UserUpdateSchema = UserRowSchema.omit({
   updated_at: true,
 })
   .partial()
-  .extend({
-    last_otp_requested_at: z.iso.datetime(),
-    otp_locked_until: z.iso.datetime(),
-  });
 
 export const UserDeleteSchema = UserRowSchema.pick({
   id: true,

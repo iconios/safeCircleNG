@@ -4,6 +4,7 @@ Deno.serve(async (req) => {
     const payload = await req.json();
     const TERMII_BASE_URL = Deno.env.get("TERMII_BASE_URL");
     const TERMII_API_KEY = Deno.env.get("TERMII_API_KEY");
+    const SMS_SENDER_ID = Deno.env.get("SMS_SENDER_ID");
 
     if (!TERMII_BASE_URL || !TERMII_API_KEY) {
       console.error("Missing termii env variables");
@@ -23,8 +24,8 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         to: phone,
-        from: "SafeCircle",
-        sms: `Your SafeCircle verification code is ${otp}. Expires in 5 minutes.`,
+        from: SMS_SENDER_ID,
+        sms: `Your ${SMS_SENDER_ID} verification code is ${otp}. Expires in 5 minutes.`,
         type: "plain",
         channel: "dnd",
         api_key: TERMII_API_KEY,

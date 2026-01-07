@@ -29,7 +29,7 @@ import { OTP_COOLDOWN_MS } from "../../config/auth.ts";
 
 export const sendOtp = async (phone_number: string) => {
   try {
-    const {error} = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithOtp({
       phone: phone_number,
       options: {
         shouldCreateUser: false,
@@ -38,7 +38,7 @@ export const sendOtp = async (phone_number: string) => {
     });
 
     if (error) {
-      throw new Error("SMS_FAILED")
+      throw new Error("SMS_FAILED");
     }
   } catch (error) {
     console.error("SMS Failed", error);
@@ -47,12 +47,12 @@ export const sendOtp = async (phone_number: string) => {
 
 export const updateOtpTimestamp = async (id: string, at: Date) => {
   await supabaseAdmin
-      .from("users")
-      .update({
-        last_otp_requested_at: at.toISOString(),
-      })
-      .eq("id", id);
-}
+    .from("users")
+    .update({
+      last_otp_requested_at: at.toISOString(),
+    })
+    .eq("id", id);
+};
 
 const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
   const now: Date = new Date(Date.now());
@@ -70,7 +70,7 @@ const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
       .maybeSingle();
 
     // 3. If the number already exists, the user is informed to log in instead
-    if (existingUser) {      
+    if (existingUser) {
       // - check signup rate limits / lockout rules
       // - check if an OTP was recently requested, reject with:
       //    "Please wait x minutes before requesting another code"
@@ -96,7 +96,7 @@ const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
         };
       }
 
-      if (existingUser.phone_verified) {    
+      if (existingUser.phone_verified) {
         return {
           success: false,
           message: "User already exists. Please log in",
@@ -113,27 +113,28 @@ const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
       }
 
       if (!existingUser.phone_verified) {
-        const diffMs = Date.now() - new Date(existingUser.last_otp_requested_at).getTime(); 
+        const diffMs =
+          Date.now() - new Date(existingUser.last_otp_requested_at).getTime();
         const isInCooldown = diffMs < OTP_COOLDOWN_MS;
         const remainingSeconds = Math.ceil((OTP_COOLDOWN_MS - diffMs) / 1000);
         if (isInCooldown) {
           return {
-          success: false,
-          message: `Wait ${remainingSeconds} seconds to request new OTP`,
-          data: {},
-          error: {
-            code: "OTP_COOLDOWN",
-            details: "Wait for OTP cool-down time to elapse"
-          },
-          metadata: {
-            timestamp: now.toISOString(),
-            phoneNumber: phone_number,
-          },
-        };
+            success: false,
+            message: `Wait ${remainingSeconds} seconds to request new OTP`,
+            data: {},
+            error: {
+              code: "OTP_COOLDOWN",
+              details: "Wait for OTP cool-down time to elapse",
+            },
+            metadata: {
+              timestamp: now.toISOString(),
+              phoneNumber: phone_number,
+            },
+          };
         }
-        
+
         await sendOtp(phone_number);
-        await updateOtpTimestamp(existingUser.id, now)
+        await updateOtpTimestamp(existingUser.id, now);
         return {
           success: true,
           message: "Verification OTP sent via SMS",
@@ -146,7 +147,7 @@ const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
         };
       }
     }
-    
+
     // 4. If the phone number never existed
     // a. the user is created in the authentication space
     const { data: authData, error: authError } =

@@ -1,5 +1,6 @@
 import axios from "axios";
-import { supabaseAdmin } from "../config/supabase";
+import { supabaseAdmin } from "../config/supabase.ts";
+import process from "node:process";
 
 const TERMII_API_KEY = process.env.TERMII_API_KEY;
 const senderID = process.env.SMS_SENDER_ID;
