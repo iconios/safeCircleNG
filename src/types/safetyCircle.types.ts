@@ -1,0 +1,66 @@
+import { z } from "zod";
+import { PhoneNumberSchema } from "./user.types.ts";
+
+export const SafetyCircleRowSchema = z.object({
+  id: z.uuid(),
+  contact_phone: PhoneNumberSchema,
+  is_verified: z.boolean().default(false).nullable(),
+  verification_sent_at: z.iso.datetime().nullable(),
+  last_alert_at: z.iso.datetime().nullable(),
+  contact_name: z.string().min(2).max(20),
+  relationship: z.string().min(2).max(20).nullable(),
+  is_active: z.boolean().default(true).nullable(),
+  is_primary: z.boolean().default(false).nullable(),
+  receive_sms: z.boolean().default(true).nullable(),
+  receive_email: z.boolean().default(false).nullable(),
+  created_at: z.iso.datetime().nullable(),
+  updated_at: z.iso.datetime().nullable(),
+  total_alerts_received: z.number().int().min(0).default(0).nullable(),
+});
+
+export const SafetyCircleInsertSchema = SafetyCircleRowSchema.pick({
+  id: true,
+  contact_phone: true,
+  contact_name: true,
+}).extend({
+  relationship: z.string(),
+});
+
+export const SafetyCircleUpdateSchema = SafetyCircleRowSchema.omit({
+  created_at: true,
+  updated_at: true,
+  id: true,
+}).partial();
+
+export const SafetyCircleDeleteSchema = SafetyCircleRowSchema.pick({
+  id: true,
+});
+
+export type SafetyCircleRow = z.infer<typeof SafetyCircleRowSchema>;
+export type SafetyCircleInsert = z.infer<typeof SafetyCircleInsertSchema>;
+export type SafetyCircleUpdate = z.infer<typeof SafetyCircleUpdateSchema>;
+export type SafetyCircleDelete = z.infer<typeof SafetyCircleDeleteSchema>;
+
+export interface Database {
+  public: {
+    Tables: {
+      safety_circles: {
+        Row: SafetyCircleRow;
+        insert: SafetyCircleInsert;
+        update: SafetyCircleUpdate;
+        delete: SafetyCircleDelete;
+      };
+    };
+  };
+}
+
+export const CreateCircleDataSchema = SafetyCircleRowSchema.pick({
+  contact_name: true,
+  contact_phone: true,
+})
+  .extend({
+    relationship: z.string().min(2).max(20),
+  })
+  .strict();
+
+export type CreateCircleDataDTO = z.infer<typeof CreateCircleDataSchema>;

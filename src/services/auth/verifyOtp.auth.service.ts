@@ -46,13 +46,16 @@ import { LOCK_DURATION_MINUTES, MAX_OTP_ATTEMPTS } from "../../config/auth.ts";
 
 export const updateLastOtpRequestAt = async (id: string, at: Date) => {
   try {
-  await supabaseAdmin.from("users").update({
-    last_otp_requested_at: at.toISOString(),
-  }).eq("id", id)
+    await supabaseAdmin
+      .from("users")
+      .update({
+        last_otp_requested_at: at.toISOString(),
+      })
+      .eq("id", id);
   } catch (error) {
     console.error(`Last otp update failed for ${id}`, error);
   }
-}
+};
 
 const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
   const now = new Date(Date.now());
@@ -89,11 +92,11 @@ const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
     if (!userData) {
       return {
         success: false,
-        message: "Please sign up",
+        message: "Number not found. Please sign up",
         data: {},
         error: {
           code: "NOT_FOUND",
-          details: "User not found in the database",
+          details: "Number not found in the database",
         },
         metadata: {
           timestamp: now.toISOString(),

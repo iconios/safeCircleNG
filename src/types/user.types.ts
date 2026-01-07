@@ -15,23 +15,29 @@ export const UserRowSchema = z.object({
   id: z.uuid(),
   phone_number: PhoneNumberSchema,
   phone_verified: z.boolean().default(false),
-  last_otp_requested_at: z.iso.datetime(),
-  otp_locked_until: z.iso.datetime(),
-  failed_attempt_count: z.number().int().min(0).default(0),
-  email: z.email(),
-  first_name: z.string().min(2).max(100),
-  profile_image_url: z.url(),
-  user_type: UserTypeEnum.default("individual"),
-  subscription_tier: UserSubscriptionTierEnum.default("free"),
+  last_otp_requested_at: z.iso.datetime().nullable(),
+  otp_locked_until: z.iso.datetime().nullable(),
+  failed_attempt_count: z.number().int().min(0).default(0).nullable(),
+  email: z.email().nullable(),
+  first_name: z.string().min(2).max(100).nullable(),
+  profile_image_url: z.url().nullable(),
+  user_type: UserTypeEnum.default("individual").nullable(),
+  subscription_tier: UserSubscriptionTierEnum.default("free").nullable(),
   subscription_expires_at: z.iso.datetime().nullable(),
-  last_login_at: z.iso.datetime(),
-  profile_completion_score: z.number().int().min(0).max(100).default(10),
-  fcm_token: z.string(),
-  device_id: z.string().length(255),
-  status: userStatusEnum.default("pending_verification"),
-  location_sharing_consent: z.boolean().default(true),
-  created_at: z.iso.datetime(),
-  updated_at: z.iso.datetime(),
+  last_login_at: z.iso.datetime().nullable(),
+  profile_completion_score: z
+    .number()
+    .int()
+    .min(0)
+    .max(100)
+    .default(10)
+    .nullable(),
+  fcm_token: z.string().nullable(),
+  device_id: z.string().length(255).nullable(),
+  status: userStatusEnum.default("pending_verification").nullable(),
+  location_sharing_consent: z.boolean().default(true).nullable(),
+  created_at: z.iso.datetime().nullable(),
+  updated_at: z.iso.datetime().nullable(),
 });
 
 export const UserInsertSchema = UserRowSchema.pick({
@@ -49,8 +55,7 @@ export const UserUpdateSchema = UserRowSchema.omit({
   id: true,
   created_at: true,
   updated_at: true,
-})
-  .partial()
+}).partial();
 
 export const UserDeleteSchema = UserRowSchema.pick({
   id: true,

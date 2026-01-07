@@ -6,8 +6,8 @@
 3. Send result to caller
 */
 
-import { supabase } from "../../config/supabase";
-import { ReadUserDTO } from "../../types/user.types";
+import { supabase } from "../../config/supabase.ts";
+import { ReadUserDTO } from "../../types/user.types.ts";
 
 const ReadUserService = async (userId: string) => {
   try {
