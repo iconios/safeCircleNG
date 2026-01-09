@@ -87,3 +87,14 @@ export const emergencyInputSchema = z
   .strict();
 
 export type emergencyInputDTO = z.infer<typeof emergencyInputSchema>;
+
+export const deleteEmergencySchema = emergencyInputSchema
+  .pick({
+    user_id: true,
+  })
+  .extend({
+    emergency_id: z.uuid(),
+  })
+  .strict();
+
+export type deleteEmergencyDTO = z.infer<typeof deleteEmergencySchema>;

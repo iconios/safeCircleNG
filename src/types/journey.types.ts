@@ -9,6 +9,7 @@ export const journeyStatusEnum = z.enum([
   "cancelled",
   "missed_checkin",
 ]);
+export const batteryLevel = z.number().int().min(0).max(100);
 export const decimalLatCoordinate = z
   .object({
     lat: z.coerce
@@ -57,8 +58,8 @@ export const JourneyRowSchema = z.object({
   organization_id: z.uuid().nullable(),
   event_id: z.uuid().nullable(),
   distance_km: z.number().min(0).default(0).nullable(),
-  battery_start: z.number().int().min(0).max(100),
-  battery_end: z.number().int().min(0).max(100).nullable(),
+  battery_start: batteryLevel,
+  battery_end: batteryLevel.nullable(),
   created_at: z.iso.datetime().nullable(),
   updated_at: z.iso.datetime().nullable(),
 });
