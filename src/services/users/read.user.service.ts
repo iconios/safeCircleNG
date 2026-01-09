@@ -6,7 +6,7 @@
 3. Send result to caller
 */
 
-import { supabase } from "../../config/supabase.ts";
+import { supabaseAdmin } from "../../config/supabase.ts";
 import { ReadUserDTO } from "../../types/user.types.ts";
 
 const ReadUserService = async (userId: string) => {
@@ -29,7 +29,7 @@ const ReadUserService = async (userId: string) => {
     }
 
     // 2. Fetch the user details from the database and select non-sensitive data
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("users")
       .select(
         "id, email, first_name, phone_number, phone_verified, user_type, subscription_tier, last_login_at, status",

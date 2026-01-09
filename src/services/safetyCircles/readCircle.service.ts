@@ -11,6 +11,7 @@ import { SafetyCircleRow } from "../../types/safetyCircle.types.ts";
 import validateUser from "../../utils/validateUser.util.ts";
 
 const readCircleService = async (userId: string) => {
+  const NODE_ENV = process.env.NODE_ENV ?? "production";
   const now = new Date(Date.now());
   try {
     // 1. Accept and validate the user Id
@@ -32,7 +33,10 @@ const readCircleService = async (userId: string) => {
         data: {},
         error: {
           code: "FETCH_ERROR",
-          details: "Error fetching circle members",
+          details:
+            NODE_ENV === "development"
+              ? error.message
+              : "Error fetching circle members",
         },
         metadata: {
           timestamp: now.toISOString(),

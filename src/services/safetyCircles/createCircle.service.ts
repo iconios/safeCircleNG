@@ -17,16 +17,17 @@ import {
   CreateCircleDataSchema,
   SafetyCircleInsert,
 } from "../../types/safetyCircle.types.ts";
-import ValidateUser from "../../utils/validateUser.util.ts";
+import validateUser from "../../utils/validateUser.util.ts";
 
 const createCircleMember = async (
   userId: string,
   createCircleData: CreateCircleDataDTO,
 ) => {
+  const NODE_ENV = process.env.NODE_ENV ?? "production";
   const now = new Date(Date.now());
   try {
     // 1. Accept and validate the user Id
-    const userValidation = await ValidateUser(userId, now);
+    const userValidation = await validateUser(userId, now);
     if (!userValidation.success) {
       return userValidation;
     }
@@ -54,7 +55,10 @@ const createCircleMember = async (
         data: {},
         error: {
           code: "CIRCLE_MEMBER_CREATION_ERROR",
-          details: "Error creating circle member",
+          details:
+            NODE_ENV === "development"
+              ? circleError.message
+              : "Error creating circle member",
         },
         metadata: {
           timestamp: now.toISOString(),

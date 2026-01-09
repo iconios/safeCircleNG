@@ -1,27 +1,30 @@
-// Delete journey service
+// Read emergency by journey service
 /*
 #Plan:
 1. Accept and validate user id
 2. Accept and validate journey id
-3. Delete journey
+3. Fetch emergency
 4. Send response to user
 */
 
 import { ZodError } from "zod";
-import { supabaseAdmin } from "../../config/supabase.ts";
 import {
-  journeyInputDTO,
-  journeyInputSchema,
-} from "../../types/journey.types.ts";
-import validateJourney from "../../utils/validateJourney.util.ts";
+  emergencyInputDTO,
+  emergencyInputSchema,
+} from "../../types/emergency.types.ts";
 import validateUser from "../../utils/validateUser.util.ts";
+import validateJourney from "../../utils/validateJourney.util.ts";
+import { supabaseAdmin } from "../../config/supabase.ts";
 
-const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
+const readEmergencyByJourneyService = async (
+  emergencyDataInput: emergencyInputDTO,
+) => {
   const now = new Date();
   const NODE_ENV = process.env.NODE_ENV ?? "production";
   try {
     // 1. Accept and validate user id
-    const { user_id, journey_id } = journeyInputSchema.parse(deleteJourneyData);
+    const { user_id, journey_id } =
+      emergencyInputSchema.parse(emergencyDataInput);
     const userValidation = await validateUser(user_id, now);
     if (!userValidation.success) {
       return userValidation;
@@ -33,40 +36,24 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
       return journeyValidation;
     }
 
-    // 3. Delete journey
-    const { error, count } = await supabaseAdmin
-      .from("journeys")
-      .delete()
+    // 3. Fetch emergency
+    const { data, error } = await supabaseAdmin
+      .from("emergencies")
+      .select("*")
       .eq("journey_id", journey_id)
-      .eq("user_id", user_id);
+      .eq("user_id", user_id)
+      .maybeSingle();
     if (error) {
       return {
         success: false,
-        message: "Error deleting journey",
+        message: "Error reading emergency",
         data: {},
         error: {
-          code: "JOURNEY_DELETION_ERROR",
+          code: "EMERGENCY_FETCH_ERROR",
           details:
             NODE_ENV === "development"
-              ? error.message
-              : "Error deleting journey",
-        },
-        metadata: {
-          timestamp: now.toISOString(),
-          user_id,
-          journey_id,
-        },
-      };
-    }
-
-    if (count === 0) {
-      return {
-        success: false,
-        message: "Journey not found",
-        data: {},
-        error: {
-          code: "NOT_FOUND",
-          details: "Journey no longer exists",
+              ? (error.message ?? "Error fetching emergency")
+              : "Error fetching emergency",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -79,8 +66,8 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
     // 4. Send response to user
     return {
       success: true,
-      message: "Journey deleted successfully",
-      data: {},
+      message: data ? "Emergency fetched successfully" : "No emergency found",
+      data,
       error: null,
       metadata: {
         timestamp: now.toISOString(),
@@ -89,19 +76,19 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
       },
     };
   } catch (error) {
-    console.error("Error deleting journey", error);
+    console.error("Error reading emergencies", error);
 
     if (error instanceof ZodError) {
       return {
         success: false,
-        message: "Error validating journey data",
+        message: "Emergency data validation error",
         data: {},
         error: {
           code: "VALIDATION_ERROR",
           details:
             NODE_ENV === "development"
-              ? error.message
-              : "Error validating journey data",
+              ? (error?.message ?? "Emergency data validation error")
+              : "Emergency data validation error",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -115,7 +102,7 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
       data: {},
       error: {
         code: "INTERNAL_ERROR",
-        details: "Unexpected error while deleting journey",
+        details: "Unexpected error while reading emergency",
       },
       metadata: {
         timestamp: now.toISOString(),
@@ -124,4 +111,4 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
   }
 };
 
-export default deleteJourneyService;
+export default readEmergencyByJourneyService;

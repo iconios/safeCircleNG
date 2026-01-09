@@ -22,6 +22,7 @@ const updateCircleService = async (
   circleId: string,
   updateCircleData: SafetyCircleUpdate,
 ) => {
+  const NODE_ENV = process.env.NODE_ENV ?? "production";
   const now = new Date();
   try {
     // 1. Accept and validate the user Id
@@ -73,7 +74,10 @@ const updateCircleService = async (
         data: {},
         error: {
           code: "CIRCLE_UPDATE_ERROR",
-          details: circleError?.message ?? "Error while updating circle member",
+          details:
+            NODE_ENV === "development"
+              ? (circleError?.message ?? "Error while updating circle member")
+              : "Error while updating circle member",
         },
         metadata: {
           timestamp: now.toISOString(),

@@ -12,6 +12,7 @@ import validateCircle from "../../utils/validateCircle.util.ts";
 import validateUser from "../../utils/validateUser.util.ts";
 
 const deleteCircleService = async (userId: string, circleId: string) => {
+  const NODE_ENV = process.env.NODE_ENV ?? "production";
   const now = new Date();
   try {
     // 1. Accept and validate the user Id
@@ -31,7 +32,7 @@ const deleteCircleService = async (userId: string, circleId: string) => {
       .from("safety_circles")
       .delete()
       .eq("id", circleId)
-      .eq("user_id", userId)
+      .eq("user_id", userId);
     if (error) {
       return {
         success: false,
@@ -39,7 +40,10 @@ const deleteCircleService = async (userId: string, circleId: string) => {
         data: {},
         error: {
           code: "CIRCLE_DELETE_ERROR",
-          details: error.message,
+          details:
+            NODE_ENV === "development"
+              ? error.message
+              : "Error deleting circle member",
         },
         metadata: {
           timestamp: now.toISOString(),

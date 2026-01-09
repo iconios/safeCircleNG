@@ -1,55 +1,50 @@
-// Delete journey service
+// Read journey by id service
 /*
 #Plan:
-1. Accept and validate user id
-2. Accept and validate journey id
-3. Delete journey
-4. Send response to user
+1. Accept and validate the user id and journey id
+2. Fetch the journey id
+3. Send response to user
 */
 
 import { ZodError } from "zod";
 import { supabaseAdmin } from "../../config/supabase.ts";
 import {
+  JourneyRow,
   journeyInputDTO,
   journeyInputSchema,
 } from "../../types/journey.types.ts";
-import validateJourney from "../../utils/validateJourney.util.ts";
 import validateUser from "../../utils/validateUser.util.ts";
 
-const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
-  const now = new Date();
+const readJourneyByIdService = async (readJourneyData: journeyInputDTO) => {
   const NODE_ENV = process.env.NODE_ENV ?? "production";
+  const now = new Date();
   try {
-    // 1. Accept and validate user id
-    const { user_id, journey_id } = journeyInputSchema.parse(deleteJourneyData);
+    // 1. Accept and validate the user id and journey id
+    const { user_id, journey_id } = journeyInputSchema.parse(readJourneyData);
     const userValidation = await validateUser(user_id, now);
     if (!userValidation.success) {
       return userValidation;
     }
 
-    // 2. Accept and validate journey id
-    const journeyValidation = await validateJourney(user_id, journey_id, now);
-    if (!journeyValidation.success) {
-      return journeyValidation;
-    }
-
-    // 3. Delete journey
-    const { error, count } = await supabaseAdmin
+    // 2. Fetch the journey id
+    const { data, error } = await supabaseAdmin
       .from("journeys")
-      .delete()
+      .select("*")
       .eq("journey_id", journey_id)
-      .eq("user_id", user_id);
+      .eq("user_id", user_id)
+      .maybeSingle();
+
     if (error) {
       return {
         success: false,
-        message: "Error deleting journey",
+        message: "Error fetching journey",
         data: {},
         error: {
-          code: "JOURNEY_DELETION_ERROR",
+          code: "FETCH_ERROR",
           details:
             NODE_ENV === "development"
               ? error.message
-              : "Error deleting journey",
+              : "Error fetching journey",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -59,14 +54,14 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
       };
     }
 
-    if (count === 0) {
+    if (!data) {
       return {
         success: false,
         message: "Journey not found",
         data: {},
         error: {
           code: "NOT_FOUND",
-          details: "Journey no longer exists",
+          details: "Journey not found",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -76,11 +71,12 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
       };
     }
 
-    // 4. Send response to user
+    // 3. Send response to user
+    const journeyData: JourneyRow = data;
     return {
       success: true,
-      message: "Journey deleted successfully",
-      data: {},
+      message: "Journey fetched successfully",
+      data: journeyData,
       error: null,
       metadata: {
         timestamp: now.toISOString(),
@@ -89,19 +85,16 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
       },
     };
   } catch (error) {
-    console.error("Error deleting journey", error);
+    console.error("Error fetching journey", error);
 
     if (error instanceof ZodError) {
       return {
         success: false,
-        message: "Error validating journey data",
+        message: "Error validating the input data",
         data: {},
         error: {
           code: "VALIDATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? error.message
-              : "Error validating journey data",
+          details: "Error while validating the input data",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -115,7 +108,7 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
       data: {},
       error: {
         code: "INTERNAL_ERROR",
-        details: "Unexpected error while deleting journey",
+        details: "Unexpected error while fetching journey",
       },
       metadata: {
         timestamp: now.toISOString(),
@@ -124,4 +117,4 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
   }
 };
 
-export default deleteJourneyService;
+export default readJourneyByIdService;

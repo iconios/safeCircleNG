@@ -1,77 +1,70 @@
 import { supabaseAdmin } from "../config/supabase.ts";
 
-const validateUser = async (
-  userId: string,
-  at: Date,
-  metadata?: Record<string, unknown>,
-) => {
+const validateJourney = async (userId: string, journeyId: string, at: Date) => {
   try {
-    if (!userId?.trim()) {
+    if (!journeyId) {
       return {
         success: false,
-        message: "User Id required",
+        message: "Journey Id required",
         data: {},
         error: {
-          code: "USER_ID_REQUIRED",
-          details: "User Id is required",
+          code: "JOURNEY_ID_REQUIRED",
+          details: "Journey Id is required",
         },
         metadata: {
           timestamp: at.toISOString(),
-          ...metadata,
         },
       };
     }
 
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("id", userId)
+    const { data: journeyData, error: journeyError } = await supabaseAdmin
+      .from("journeys")
+      .select("journey_id")
+      .eq("journey_id", journeyId)
+      .eq("user_id", userId)
       .maybeSingle();
 
-    if (userError) {
+    if (journeyError) {
       return {
         success: false,
-        message: "Error while confirming user",
+        message: "Error while confirming journey",
         data: {},
         error: {
-          code: "USER_CONFIRMATION_ERROR",
-          details: "Error while confirming user",
+          code: "JOURNEY_CONFIRMATION_ERROR",
+          details: "Error while confirming journey",
         },
         metadata: {
           timestamp: at.toISOString(),
-          ...metadata,
         },
       };
     }
 
-    if (!userData) {
+    if (!journeyData) {
       return {
         success: false,
-        message: "User not found",
+        message: "Journeys not found",
         data: {},
         error: {
           code: "NOT_FOUND",
-          details: "User not found",
+          details: "Journeys not found",
         },
         metadata: {
           timestamp: at.toISOString(),
-          ...metadata,
         },
       };
     }
 
     return {
       success: true,
-      message: "User validated",
-      data: userData,
+      message: "Journey validated",
+      data: journeyData,
       error: null,
       metadata: {
         timestamp: at.toISOString(),
-        ...metadata,
       },
     };
   } catch (error) {
-    console.error("User validation error", error);
+    console.error("Journey validation error", error);
 
     return {
       success: false,
@@ -79,14 +72,13 @@ const validateUser = async (
       data: {},
       error: {
         code: "INTERNAL_ERROR",
-        details: "Unexpected error during user validation",
+        details: "Unexpected error during journey validation",
       },
       metadata: {
         timestamp: at.toISOString(),
-        ...metadata,
       },
     };
   }
 };
 
-export default validateUser;
+export default validateJourney;
