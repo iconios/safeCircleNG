@@ -2,8 +2,9 @@
 /*
 #Plan:
 1. Accept and validate user id
-2. Validate subscription data and create subscription
-3. Send response to user
+2. Ensure the user has no existing subscription
+3. Validate subscription data and create subscription
+4. Send response to user
 */
 
 import { ZodError } from "zod";
@@ -30,12 +31,35 @@ const createSubscriptionService = async (
       return userValidation;
     }
 
-    // 2. Validate subscription data and create subscription
+    // 2. Ensure the user has no existing subscription
+    const { data: existing } = await supabaseAdmin
+      .from("subscriptions")
+      .select("id")
+      .eq("user_id", user_id)
+      .maybeSingle();
+
+    if (existing) {
+      return {
+        success: false,
+        message: "Subscription already exists",
+        data: null,
+        error: {
+          code: "SUBSCRIPTION_ALREADY_EXISTS",
+          details: "User already has a subscription",
+        },
+        metadata: {
+          timestamp: now.toISOString(),
+          user_id,
+        },
+      };
+    }
+
+    // 3. Validate subscription data and create subscription
     const validatedInput = subscriptionInsertSchema.parse(
       createSubscriptionData,
     );
     const { data, error } = await supabaseAdmin
-      .from("subscription")
+      .from("subscriptions")
       .insert({
         user_id,
         ...validatedInput,
@@ -46,7 +70,7 @@ const createSubscriptionService = async (
       return {
         success: false,
         message: "Error creating subscription",
-        data: {},
+        data: null,
         error: {
           code: "SUBSCRIPTION_CREATION_ERROR",
           details: isDev
@@ -60,7 +84,7 @@ const createSubscriptionService = async (
       };
     }
 
-    // 3. Send response to user
+    // 4. Send response to user
     return {
       success: true,
       message: "Subscription created successfully",
@@ -78,7 +102,7 @@ const createSubscriptionService = async (
       return {
         success: false,
         message: "Subscription data validation error",
-        data: {},
+        data: null,
         error: {
           code: "VALIDATION_ERROR",
           details: isDev
@@ -94,7 +118,7 @@ const createSubscriptionService = async (
     return {
       success: false,
       message: "Internal server error",
-      data: {},
+      data: null,
       error: {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while creating subscription",
