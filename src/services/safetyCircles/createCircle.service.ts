@@ -19,7 +19,7 @@ import {
 } from "../../types/safetyCircle.types.ts";
 import validateUser from "../../utils/validateUser.util.ts";
 
-const createCircleMember = async (
+const createCircleMemberService = async (
   userId: string,
   createCircleData: CreateCircleDataDTO,
 ) => {
@@ -85,7 +85,7 @@ const createCircleMember = async (
       },
     };
   } catch (error) {
-    console.error("Error creating cirle member", error);
+    console.error("createCircleMemberService error:", error);
 
     if (error instanceof ZodError) {
       return {
@@ -119,4 +119,4 @@ const createCircleMember = async (
   }
 };
 
-export default createCircleMember;
+export default createCircleMemberService;

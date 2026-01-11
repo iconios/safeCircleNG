@@ -70,7 +70,7 @@ const createJourneyService = async (
       },
     };
   } catch (error) {
-    console.error("Error creating a journey", error);
+    console.error("createJourneyService error:", error);
     if (error instanceof ZodError) {
       return {
         success: false,

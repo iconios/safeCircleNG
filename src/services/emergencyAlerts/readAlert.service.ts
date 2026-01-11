@@ -79,7 +79,7 @@ const readEmergencyAlertsService = async (
       .from("emergency_alerts")
       .select()
       .eq("emergency_id", emergency_id)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: true });
     if (fetchError) {
       return {
         success: false,

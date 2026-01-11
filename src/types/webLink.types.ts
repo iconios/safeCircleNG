@@ -1,11 +1,12 @@
-import  { z } from "zod";
+import { z } from "zod";
 import { timestamp } from "./emergency.types.ts";
 import { decimalLatCoordinate, decimalLngCoordinate } from "./journey.types.ts";
 
 const webLinkTypeEnum = z.enum(["emergency", "journey"]);
 const deviceTypeEnum = z.enum(["mobile", "desktop", "tablet"]);
 
-export const webLinkAccessRowSchema = z.object({
+export const webLinkAccessRowSchema = z
+  .object({
     id: z.uuid(),
     journey_id: z.uuid(),
     emergency_id: z.uuid(),
@@ -24,4 +25,55 @@ export const webLinkAccessRowSchema = z.object({
     extended_time: z.boolean().nullable(),
     called_emergency_services: z.boolean().nullable(),
     created_at: timestamp.nullable(),
-}).strict();
+  })
+  .strict();
+
+export const webLinkAccessInsertSchema = webLinkAccessRowSchema
+  .pick({
+    web_link_token: true,
+    web_link_type: true,
+  })
+  .strict();
+
+export const webLinkAccessUpdateSchema = webLinkAccessRowSchema
+  .omit({
+    journey_id: true,
+    emergency_id: true,
+    web_link_token: true,
+    web_link_type: true,
+  })
+  .strict();
+
+export const webLinkAccessDeleteSchema = webLinkAccessRowSchema
+  .pick({
+    id: true,
+  })
+  .strict();
+
+export type webLinkAccessRow = z.infer<typeof webLinkAccessRowSchema>;
+export type webLinkAccessInsert = z.infer<typeof webLinkAccessInsertSchema>;
+export type webLinkAccessUpdate = z.infer<typeof webLinkAccessUpdateSchema>;
+export type webLinkAccessDelete = z.infer<typeof webLinkAccessDeleteSchema>;
+
+export interface Database {
+  public: {
+    Tables: {
+      web_link_access: {
+        Row: webLinkAccessRow;
+        insert: webLinkAccessInsert;
+        update: webLinkAccessUpdate;
+        delete: webLinkAccessDelete;
+      };
+    };
+  };
+}
+
+export const webLinkAccessInputSchema = z
+  .object({
+    user_id: z.uuid(),
+    journey_id: z.uuid(),
+    emergency_id: z.uuid(),
+  })
+  .strict();
+
+export type webLinkAccessInputDTO = z.infer<typeof webLinkAccessInputSchema>;

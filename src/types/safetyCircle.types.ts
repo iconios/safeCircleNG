@@ -3,6 +3,7 @@ import { PhoneNumberSchema } from "./user.types.ts";
 
 export const SafetyCircleRowSchema = z.object({
   id: z.uuid(),
+  user_id: z.uuid(),
   contact_phone: PhoneNumberSchema,
   is_verified: z.boolean().default(false).nullable(),
   verification_sent_at: z.iso.datetime().nullable(),
@@ -22,19 +23,23 @@ export const SafetyCircleInsertSchema = SafetyCircleRowSchema.pick({
   id: true,
   contact_phone: true,
   contact_name: true,
-}).extend({
-  relationship: z.string(),
-});
+  user_id: true,
+})
+  .extend({
+    relationship: z.string(),
+  })
+  .strict();
 
 export const SafetyCircleUpdateSchema = SafetyCircleRowSchema.omit({
   created_at: true,
   updated_at: true,
+  user_id: true,
   id: true,
 }).partial();
 
 export const SafetyCircleDeleteSchema = SafetyCircleRowSchema.pick({
   id: true,
-});
+}).strict();
 
 export type SafetyCircleRow = z.infer<typeof SafetyCircleRowSchema>;
 export type SafetyCircleInsert = z.infer<typeof SafetyCircleInsertSchema>;
