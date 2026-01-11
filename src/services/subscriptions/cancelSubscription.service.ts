@@ -1,26 +1,22 @@
-// Update subscription service
+// Cancel subscription service
 /*
 #Plan:
 1. Accept and validate the user
-2. Validate update data and update the subscription 
-    - ensure subscription exists
+2. Confirm subscription exists and cancel if not cancelled already
 3. Send response to user
 */
 
 import { ZodError } from "zod";
+import { isDev } from "../../utils/devEnv.util.ts";
 import {
   subscriptionInputDTO,
   subscriptionInputSchema,
-  subscriptionUpdate,
-  subscriptionUpdateSchema,
 } from "../../types/subscription.types.ts";
 import validateUser from "../../utils/validateUser.util.ts";
-import { isDev } from "../../utils/devEnv.util.ts";
 import { supabaseAdmin } from "../../config/supabase.ts";
 
-const updateSubscriptionService = async (
+const cancelSubscriptionService = async (
   subscriptionInputData: subscriptionInputDTO,
-  updateSubscriptionData: subscriptionUpdate,
 ) => {
   const now = new Date();
   try {
@@ -31,33 +27,15 @@ const updateSubscriptionService = async (
       return userValidation;
     }
 
-    // 2. Validate update data and update the subscription
-    //      - ensure subscription exists
-    const validatedInput = subscriptionUpdateSchema.parse(
-      updateSubscriptionData,
-    );
-    if (Object.keys(validatedInput).length === 0) {
-      return {
-        success: false,
-        message: "No subscription update data found",
-        data: null,
-        error: {
-          code: "EMPTY_UPDATE_DATA",
-          details: "No subscription update data found",
-        },
-        metadata: {
-          timestamp: now.toISOString(),
-          user_id,
-        },
-      };
-    }
-
+    // 2. Confirm subscription exists and cancel if not cancelled already
     const { data, error } = await supabaseAdmin
       .from("subscriptions")
-      .update({ ...validatedInput })
+      .update({ status: "cancelled" })
+      .select("id, tier, status, start_date, end_date")
       .eq("user_id", user_id)
-      .select("id, tier, status, start_date, end_date, updated_at")
+      .neq("status", "cancelled")
       .maybeSingle();
+
     if (error) {
       return {
         success: false,
@@ -66,7 +44,7 @@ const updateSubscriptionService = async (
         error: {
           code: "SUBSCRIPTION_UPDATE_ERROR",
           details: isDev
-            ? (error?.message ?? "Error updating subscription")
+            ? (error.message ?? "Error updating subscription")
             : "Error updating subscription",
         },
         metadata: {
@@ -79,11 +57,11 @@ const updateSubscriptionService = async (
     if (!data) {
       return {
         success: false,
-        message: "Subscription not found",
+        message: "Subscription not found or already cancelled",
         data: null,
         error: {
-          code: "SUBSCRIPTION_NOT_FOUND",
-          details: "Subscription not found",
+          code: "SUBSCRIPTION_NOT_FOUND_OR_CANCELLED",
+          details: "Subscription not found or already cancelled",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -95,7 +73,7 @@ const updateSubscriptionService = async (
     // 3. Send response to user
     return {
       success: true,
-      message: "Subscription updated successfully",
+      message: "Subscription cancelled successfully",
       data,
       error: null,
       metadata: {
@@ -104,7 +82,7 @@ const updateSubscriptionService = async (
       },
     };
   } catch (error) {
-    console.error("updateSubscriptionService error:", error);
+    console.error("cancelSubscriptionService error:", error);
 
     if (error instanceof ZodError) {
       return {
@@ -129,7 +107,7 @@ const updateSubscriptionService = async (
       data: null,
       error: {
         code: "INTERNAL_ERROR",
-        details: "Unexpected error while updating subscription",
+        details: "Unexpected error while cancelling subscription",
       },
       metadata: {
         timestamp: now.toISOString(),
@@ -138,4 +116,4 @@ const updateSubscriptionService = async (
   }
 };
 
-export default updateSubscriptionService;
+export default cancelSubscriptionService;
