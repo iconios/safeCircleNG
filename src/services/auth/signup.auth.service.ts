@@ -22,14 +22,15 @@
 
 import { ZodError } from "zod";
 import { SignUpDataDTO, SignUpDataDTOSchema } from "../../types/auth.types.ts";
-import { supabase, supabaseAdmin } from "../../config/supabase.ts";
+import { supabaseAdmin } from "../../config/supabase.ts";
 import { subscriptionExpiresAt } from "../../utils/calculateExpiry.util.ts";
 import HashString from "../../utils/hashString.util.ts";
 import { OTP_COOLDOWN_MS } from "../../config/auth.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 
 export const sendOtp = async (phone_number: string) => {
   try {
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabaseAdmin.auth.signInWithOtp({
       phone: phone_number,
       options: {
         shouldCreateUser: false,
@@ -38,10 +39,15 @@ export const sendOtp = async (phone_number: string) => {
     });
 
     if (error) {
-      throw new Error("SMS_FAILED");
+      if (isDev) {
+        console.error("OTP send failed:", error);
+      }
+      throw new Error(error.message ?? "SMS_FAILED");
     }
   } catch (error) {
-    console.error("SMS Failed", error);
+    if (isDev) {
+      console.error("SMS Failed", error);
+    }
   }
 };
 
@@ -54,7 +60,7 @@ export const updateOtpTimestamp = async (id: string, at: Date) => {
     .eq("id", id);
 };
 
-const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
+const signUpAuthService = async (signUpData: SignUpDataDTO) => {
   const now: Date = new Date(Date.now());
   try {
     // 1. Get and validates the phone number format and device_id format
@@ -84,7 +90,7 @@ const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
         return {
           success: false,
           message: `Try again in ${remainingMinutes} minutes`,
-          data: {},
+          data: null,
           error: {
             code: "ACCOUNT_LOCKED",
             details: `Try again in ${remainingMinutes} minutes`,
@@ -100,7 +106,7 @@ const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
         return {
           success: false,
           message: "User already exists. Please log in",
-          data: {},
+          data: null,
           error: {
             code: "USER_EXISTS",
             details: "User already exists",
@@ -121,7 +127,7 @@ const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
           return {
             success: false,
             message: `Wait ${remainingSeconds} seconds to request new OTP`,
-            data: {},
+            data: null,
             error: {
               code: "OTP_COOLDOWN",
               details: "Wait for OTP cool-down time to elapse",
@@ -138,7 +144,7 @@ const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
         return {
           success: true,
           message: "Verification OTP sent via SMS",
-          data: {},
+          data: null,
           error: null,
           metadata: {
             timestamp: now.toISOString(),
@@ -159,7 +165,7 @@ const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
       return {
         success: false,
         message: "Error creating auth user. Try again",
-        data: {},
+        data: null,
         error: {
           code: "ERROR_CREATE_USER",
           details: "Error creating auth user",
@@ -195,7 +201,7 @@ const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
       return {
         success: false,
         message: "Error creating user. Try again",
-        data: {},
+        data: null,
         error: {
           code: "CREATE_USER_ERROR",
           details: "Error creating user",
@@ -220,7 +226,7 @@ const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
     return {
       success: true,
       message: "Verification OTP sent via SMS",
-      data: {},
+      data: null,
       error: null,
       metadata: {
         timestamp: now.toISOString(),
@@ -228,13 +234,13 @@ const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
       },
     };
   } catch (error) {
-    console.error("SignUp authentication error", error);
+    console.error("signUpAuthService error:", error);
 
     if (error instanceof ZodError) {
       return {
         success: false,
         message: error.message || "Signup data validation failed",
-        data: {},
+        data: null,
         error: {
           code: "VALIDATION_ERROR",
           details: "Signup data validation failed",
@@ -248,7 +254,7 @@ const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
     return {
       success: false,
       message: "Sign up error",
-      data: {},
+      data: null,
       error: {
         code: "SIGNUP_ERROR",
         details: "Error signing up user",
@@ -260,4 +266,4 @@ const SignUpAuthService = async (signUpData: SignUpDataDTO) => {
   }
 };
 
-export default SignUpAuthService;
+export default signUpAuthService;

@@ -22,7 +22,18 @@ const createOrganizationService = async (
   const now = new Date();
   const SAFECIRCLE_BASE_URL = process.env.SAFECIRCLE_BASE_URL;
   if (!SAFECIRCLE_BASE_URL) {
-    throw new Error("SAFECIRCLE_BASE_URL is not configured");
+    return {
+      success: false,
+      message: "Server configuration error",
+      data: null,
+      error: {
+        code: "CONFIG_ERROR",
+        details: "SAFECIRCLE_BASE_URL is not configured",
+      },
+      metadata: {
+        timestamp: now.toISOString(),
+      },
+    };
   }
 
   try {
@@ -60,7 +71,19 @@ const createOrganizationService = async (
         ...rest,
       })
       .select(
-        "id, name, slug, company_code, dashboard_url, status, subscription_tier, max_employees, employee_count, trial_start_date, trial_end_date, created_at",
+        `id, 
+        name, 
+        slug, 
+        company_code, 
+        dashboard_url, 
+        status, 
+        subscription_tier, 
+        max_employees, 
+        employee_count, 
+        trial_start_date, 
+        trial_end_date, 
+        created_at
+        admin_secret_key`,
       )
       .single();
     if (error) {

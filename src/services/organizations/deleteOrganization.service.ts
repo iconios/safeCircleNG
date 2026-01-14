@@ -21,7 +21,7 @@ const deleteOrganizationService = async (
   try {
     // 1. Accept and validate id and company_code
     const { company_code, organization_id } =
-      deleteOrganizationInputSchema.parse({        
+      deleteOrganizationInputSchema.parse({
         ...organizationInput,
         company_code: organizationInput.company_code.toUpperCase(),
       });
@@ -40,7 +40,7 @@ const deleteOrganizationService = async (
         message: "Error deleting organization",
         data: null,
         error: {
-          code: "ORGANIZATION_DELETE_ERROR",
+          code: "ORGANIZATION_DELETION_ERROR",
           details: isDev
             ? (error?.message ?? "Error deleting organization")
             : "Error deleting organization",
@@ -54,19 +54,19 @@ const deleteOrganizationService = async (
     }
 
     if (!data) {
-        return {
-            success: false,
-            message: "No organization found",
-            data: null,
-            error: {
-            code: "ORGANIZATION_NOT_FOUND",
-            details: "No organization found",
-            },
-            metadata: {
-            timestamp: now.toISOString(),
-            company_code,
-            },
-        }
+      return {
+        success: false,
+        message: "No organization found",
+        data: null,
+        error: {
+          code: "ORGANIZATION_NOT_FOUND",
+          details: "No organization found",
+        },
+        metadata: {
+          timestamp: now.toISOString(),
+          company_code,
+        },
+      };
     }
 
     // 3. Send response to the user

@@ -84,7 +84,7 @@ const formatString = (input: string): string => {
 };
 
 // If you need to validate that an existing string is already formatted:
-const companyCodeSchema = z
+export const codeSchema = z
   .string()
   .refine((str) => str === formatString(str), {
     message: "Invalid company code format",
@@ -92,7 +92,7 @@ const companyCodeSchema = z
 
 export const organizationInputSchema = z
   .object({
-    company_code: companyCodeSchema,
+    company_code: codeSchema,
   })
   .strict();
 export type organizationInputDTO = z.infer<typeof organizationInputSchema>;
