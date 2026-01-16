@@ -6,8 +6,8 @@ import {
 
 const authRouter = express.Router();
 
+// Auth routes
 authRouter.post("/signup", signupController);
-
 authRouter.post("/otp/verify", verifyOtpController);
 
 export default authRouter;

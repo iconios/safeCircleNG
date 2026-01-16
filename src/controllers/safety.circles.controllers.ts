@@ -9,7 +9,10 @@
 import resServerError from "../utils/resServerError.util.ts";
 import { Response } from "express";
 import { AuthRequest } from "../types/auth.types.ts";
-import { CreateCircleDataDTO, SafetyCircleUpdate } from "../types/safetyCircle.types.ts";
+import {
+  CreateCircleDataDTO,
+  SafetyCircleUpdate,
+} from "../types/safetyCircle.types.ts";
 import createCircleMemberService from "../services/safetyCircles/createCircle.service.ts";
 import readCircleMemberService from "../services/safetyCircles/readCircle.service.ts";
 import updateCircleMemberService from "../services/safetyCircles/updateCircle.service.ts";
@@ -55,7 +58,7 @@ const createSafetyCircleController = async (
           return res.status(400).json(result);
       }
     }
-    
+
     return res.status(201).json(result);
   } catch (error) {
     resServerError(res, error);
@@ -68,7 +71,7 @@ const readSafetyCircleController = async (req: AuthRequest, res: Response) => {
     // 1. Accept and validate user input
     const userId = req.userId as string;
 
-     // 2. Pass the data to the service layer for processing
+    // 2. Pass the data to the service layer for processing
     const result = await readCircleMemberService(userId);
 
     // 3. Handle success and error responses
@@ -130,9 +133,13 @@ const updateSafetyCircleController = async (
         },
       });
     }
-    
+
     // 2. Pass the data to the service layer for processing
-    const result = await updateCircleMemberService(userId, circleId, updateData);
+    const result = await updateCircleMemberService(
+      userId,
+      circleId,
+      updateData,
+    );
 
     // 3. Handle success and error responses
     if (!result.success) {

@@ -18,13 +18,13 @@ import {
   journeyLocationInsertSchema,
 } from "../../types/journeyLocation.types.ts";
 import validateUser from "../../utils/validateUser.util.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 
 const createJourneyLocationService = async (
   journeyLocationInput: journeyInputDTO,
   journeyLocationData: journeyLocationInsert,
 ) => {
   const now = new Date();
-  const NODE_ENV = process.env.NODE_ENV ?? "production";
   try {
     // 1. Accept and validate user id
     const { user_id, journey_id } =
@@ -51,11 +51,10 @@ const createJourneyLocationService = async (
         data: {},
         error: {
           code: "JOURNEY_LOCATION_CONFIRMATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (journeyError.message ??
-                "Error while confirming journey location")
-              : "Error while confirming journey location",
+          details: isDev
+            ? (journeyError.message ??
+              "Error while confirming journey location")
+            : "Error while confirming journey location",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -100,10 +99,9 @@ const createJourneyLocationService = async (
         data: {},
         error: {
           code: "JOURNEY_LOCATION_CREATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (error.message ?? "Error while creating journey location")
-              : "Error while creating journey location",
+          details: isDev
+            ? (error.message ?? "Error while creating journey location")
+            : "Error while creating journey location",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -135,10 +133,9 @@ const createJourneyLocationService = async (
         data: {},
         error: {
           code: "VALIDATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (error?.message ?? "Journey location data validation error")
-              : "Journey location data validation error",
+          details: isDev
+            ? (error?.message ?? "Journey location data validation error")
+            : "Journey location data validation error",
         },
         metadata: {
           timestamp: now.toISOString(),

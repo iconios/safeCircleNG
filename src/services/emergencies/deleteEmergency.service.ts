@@ -14,12 +14,12 @@ import {
   deleteEmergencySchema,
 } from "../../types/emergency.types.ts";
 import validateUser from "../../utils/validateUser.util.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 
 const deleteEmergencyService = async (
   emergencyInputData: deleteEmergencyDTO,
 ) => {
   const now = new Date();
-  const NODE_ENV = process.env.NODE_ENV ?? "production";
   try {
     // 1. Accept and validate user id
     const { user_id, emergency_id } =
@@ -41,13 +41,12 @@ const deleteEmergencyService = async (
       return {
         success: false,
         message: "Error while confirming emergency",
-        data: {},
+        data: null,
         error: {
           code: "EMERGENCY_CONFIRMATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (emergencyError?.message ?? "Error while confirming emergency")
-              : "Error while confirming emergency",
+          details: isDev
+            ? (emergencyError?.message ?? "Error while confirming emergency")
+            : "Error while confirming emergency",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -61,7 +60,7 @@ const deleteEmergencyService = async (
       return {
         success: false,
         message: "Emergency not found",
-        data: {},
+        data: null,
         error: {
           code: "NOT_FOUND",
           details: "Emergency not found",
@@ -84,13 +83,12 @@ const deleteEmergencyService = async (
       return {
         success: false,
         message: "Error deleting emergency",
-        data: {},
+        data: null,
         error: {
           code: "EMERGENCY_DELETION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (error.message ?? "Error deleting emergency")
-              : "Error deleting emergency",
+          details: isDev
+            ? (error.message ?? "Error deleting emergency")
+            : "Error deleting emergency",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -103,7 +101,7 @@ const deleteEmergencyService = async (
     return {
       success: true,
       message: "Emergency deleted successfully",
-      data: {},
+      data: null,
       error: null,
       metadata: {
         timestamp: now.toISOString(),
@@ -118,13 +116,12 @@ const deleteEmergencyService = async (
       return {
         success: false,
         message: "Emergency data validation error",
-        data: {},
+        data: null,
         error: {
           code: "VALIDATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (error?.message ?? "Emergency data validation error")
-              : "Emergency data validation error",
+          details: isDev
+            ? (error?.message ?? "Emergency data validation error")
+            : "Emergency data validation error",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -135,7 +132,7 @@ const deleteEmergencyService = async (
     return {
       success: false,
       message: "Internal server error",
-      data: {},
+      data: null,
       error: {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while deleting emergency",

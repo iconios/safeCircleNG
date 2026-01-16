@@ -6,6 +6,11 @@ import authRouter from "./routes/auth.routes.ts";
 import journeyRouter from "./routes/journey.routes.ts";
 import safetyCircleRouter from "./routes/safety.circle.routes.ts";
 import { authRateLimiter } from "./middleware/rateLimiter.ts";
+import journeyLocationRouter from "./routes/journey.location.routes.ts";
+import journeySharesRouter from "./routes/journey.shares.routes.ts";
+import emergencyRouter from "./routes/emergency.routes.ts";
+import emergencyAlertsRouter from "./routes/emergency.alerts.routes.ts";
+import webLinkAccessRouter from "./routes/web.link.access.routes.ts";
 dotenv.config();
 
 const app = express();
@@ -24,6 +29,11 @@ app.get("/health", (_, res) => res.send("OK"));
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/journeys", journeyRouter);
 app.use("/api/v1/safety-circles", safetyCircleRouter);
+app.use("/api/v1/journey-locations", journeyLocationRouter);
+app.use("/api/v1/journey-shares", journeySharesRouter);
+app.use("/api/v1/emergencies", emergencyRouter);
+app.use("/api/v1/emergency-alerts", emergencyAlertsRouter);
+app.use("/api/v1/web-link-access", webLinkAccessRouter);
 
 // No route found handler
 app.use((req, res) => {

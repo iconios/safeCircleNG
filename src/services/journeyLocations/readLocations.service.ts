@@ -15,12 +15,12 @@ import {
 import validateJourney from "../../utils/validateJourney.util.ts";
 import validateUser from "../../utils/validateUser.util.ts";
 import { supabaseAdmin } from "../../config/supabase.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 
 const readJourneyLocationsService = async (
   journeyLocationInput: journeyInputDTO,
 ) => {
   const now = new Date();
-  const NODE_ENV = process.env.NODE_ENV ?? "production";
   try {
     // 1. Accept and validate user id
     const { user_id, journey_id } =
@@ -49,10 +49,9 @@ const readJourneyLocationsService = async (
         data: [],
         error: {
           code: "JOURNEY_LOCATION_READ_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (error?.message ?? "Error fetching journey locations")
-              : "Error fetching journey locations",
+          details: isDev
+            ? (error?.message ?? "Error fetching journey locations")
+            : "Error fetching journey locations",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -86,10 +85,9 @@ const readJourneyLocationsService = async (
         data: [],
         error: {
           code: "VALIDATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (error?.message ?? "Journey location data validation error")
-              : "Journey location data validation error",
+          details: isDev
+            ? (error?.message ?? "Journey location data validation error")
+            : "Journey location data validation error",
         },
         metadata: {
           timestamp: now.toISOString(),

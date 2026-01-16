@@ -30,7 +30,6 @@ export const webLinkAccessRowSchema = z
 
 export const webLinkAccessInsertSchema = webLinkAccessRowSchema
   .pick({
-    web_link_token: true,
     web_link_type: true,
   })
   .strict();

@@ -20,7 +20,7 @@ import validateUser from "../../utils/validateUser.util.ts";
 import { supabaseAdmin } from "../../config/supabase.ts";
 import { isDev } from "../../utils/devEnv.util.ts";
 
-const webLinkAccessService = async (
+const createWebLinkAccessService = async (
   webLinkAccessInput: webLinkAccessInputDTO,
   createWebLinkAccess: webLinkAccessInsert,
 ) => {
@@ -148,11 +148,13 @@ const webLinkAccessService = async (
     const validatedInput = webLinkAccessInsertSchema.parse(createWebLinkAccess);
 
     // 5. Create web link access data
+    const web_link_token = crypto.randomUUID();
     const { data, error } = await supabaseAdmin
       .from("web_link_access")
       .insert({
         journey_id,
         emergency_id,
+        web_link_token,
         ...validatedInput,
       })
       .select()
@@ -223,4 +225,4 @@ const webLinkAccessService = async (
   }
 };
 
-export default webLinkAccessService;
+export default createWebLinkAccessService;

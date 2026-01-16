@@ -16,13 +16,13 @@ import {
 } from "../../types/emergencyAlert.types.ts";
 import validateUser from "../../utils/validateUser.util.ts";
 import { supabaseAdmin } from "../../config/supabase.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 
 const createEmergencyAlertService = async (
   alertInputData: emergencyAlertInputDTO,
   createAlertData: emergencyAlertsInsert,
 ) => {
   const now = new Date();
-  const NODE_ENV = process.env.NODE_ENV ?? "production";
   try {
     // 1. Accept and validate the user id
     const { user_id, emergency_id } =
@@ -44,13 +44,12 @@ const createEmergencyAlertService = async (
       return {
         success: false,
         message: "Error validating emergency",
-        data: {},
+        data: null,
         error: {
           code: "EMERGENCY_VALIDATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (emergencyError.message ?? "Error validating emergency")
-              : "Error validating emergency",
+          details: isDev
+            ? (emergencyError.message ?? "Error validating emergency")
+            : "Error validating emergency",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -64,7 +63,7 @@ const createEmergencyAlertService = async (
       return {
         success: false,
         message: "Emergency not found",
-        data: {},
+        data: null,
         error: {
           code: "NOT_FOUND",
           details: "Emergency not found",
@@ -81,7 +80,7 @@ const createEmergencyAlertService = async (
       return {
         success: false,
         message: "Emergency already resolved",
-        data: {},
+        data: null,
         error: {
           code: "EMERGENCY_ALREADY_RESOLVED",
           details: "Emergency already resolved",
@@ -108,13 +107,12 @@ const createEmergencyAlertService = async (
       return {
         success: false,
         message: "Error creating emergency alert",
-        data: {},
+        data: null,
         error: {
           code: "EMERGENCY_ALERT_CREATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (error?.message ?? "Error creating emergency alert")
-              : "Error creating emergency alert",
+          details: isDev
+            ? (error?.message ?? "Error creating emergency alert")
+            : "Error creating emergency alert",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -143,13 +141,12 @@ const createEmergencyAlertService = async (
       return {
         success: false,
         message: "Emergency data validation error",
-        data: {},
+        data: null,
         error: {
           code: "VALIDATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (error?.message ?? "Emergency data validation error")
-              : "Emergency data validation error",
+          details: isDev
+            ? (error?.message ?? "Emergency data validation error")
+            : "Emergency data validation error",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -160,7 +157,7 @@ const createEmergencyAlertService = async (
     return {
       success: false,
       message: "Internal server error",
-      data: {},
+      data: null,
       error: {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while creating emergency alert",

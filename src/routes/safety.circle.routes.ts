@@ -15,13 +15,7 @@ safetyCircleRouter.use(authenticateToken);
 // Safety Circle Routes
 safetyCircleRouter.post("/", createSafetyCircleController);
 safetyCircleRouter.get("/", readSafetyCircleController);
-safetyCircleRouter.patch(
-  "/:safetyCircleId",
-  updateSafetyCircleController,
-);
-safetyCircleRouter.delete(
-  "/:safetyCircleId",
-  deleteSafetyCircleController,
-);
+safetyCircleRouter.patch("/:safetyCircleId", updateSafetyCircleController);
+safetyCircleRouter.delete("/:safetyCircleId", deleteSafetyCircleController);
 
 export default safetyCircleRouter;

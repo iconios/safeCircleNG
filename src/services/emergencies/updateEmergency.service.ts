@@ -18,13 +18,13 @@ import {
 } from "../../types/emergency.types.ts";
 import validateUser from "../../utils/validateUser.util.ts";
 import validateJourney from "../../utils/validateJourney.util.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 
 const updateEmergencyService = async (
   emergencyInputData: emergencyInputDTO,
   emergencyUpdateData: emergencyUpdate,
 ) => {
   const now = new Date();
-  const NODE_ENV = process.env.NODE_ENV ?? "production";
   try {
     // 1. Accept and validate user id
     const { user_id, journey_id } =
@@ -51,13 +51,12 @@ const updateEmergencyService = async (
       return {
         success: false,
         message: "Emergency not found",
-        data: {},
+        data: null,
         error: {
           code: "NOT_FOUND",
-          details:
-            NODE_ENV === "development"
-              ? (error?.message ?? "Emergency not found")
-              : "Emergency not found",
+          details: isDev
+            ? (error?.message ?? "Emergency not found")
+            : "Emergency not found",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -80,13 +79,12 @@ const updateEmergencyService = async (
       return {
         success: false,
         message: "Error updating emergency",
-        data: {},
+        data: null,
         error: {
           code: "EMERGENCY_UPDATE_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (updateError?.message ?? "Error updating emergency")
-              : "Error updating emergency",
+          details: isDev
+            ? (updateError?.message ?? "Error updating emergency")
+            : "Error updating emergency",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -115,13 +113,12 @@ const updateEmergencyService = async (
       return {
         success: false,
         message: "Emergency data validation error",
-        data: {},
+        data: null,
         error: {
           code: "VALIDATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (error?.message ?? "Emergency data validation error")
-              : "Emergency data validation error",
+          details: isDev
+            ? (error?.message ?? "Emergency data validation error")
+            : "Emergency data validation error",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -132,7 +129,7 @@ const updateEmergencyService = async (
     return {
       success: false,
       message: "Internal server error",
-      data: {},
+      data: null,
       error: {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while updating emergency",

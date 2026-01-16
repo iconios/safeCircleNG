@@ -70,7 +70,7 @@ const updateJourneySharesService = async (
       return {
         success: false,
         message: "Error updating journey share",
-        data: {},
+        data: null,
         error: {
           code: "JOURNEY_SHARE_UPDATE_ERROR",
           details: isDev
@@ -90,7 +90,7 @@ const updateJourneySharesService = async (
       return {
         success: false,
         message: "Journey share not found",
-        data: {},
+        data: null,
         error: {
           code: "NOT_FOUND",
           details: "Journey share not found",
@@ -124,7 +124,7 @@ const updateJourneySharesService = async (
       return {
         success: false,
         message: "Journey share data validation error",
-        data: {},
+        data: null,
         error: {
           code: "VALIDATION_ERROR",
           details: isDev
@@ -140,7 +140,7 @@ const updateJourneySharesService = async (
     return {
       success: false,
       message: "Internal server error",
-      data: {},
+      data: null,
       error: {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while updating journey share",

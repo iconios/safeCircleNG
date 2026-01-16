@@ -14,12 +14,12 @@ import {
 } from "../../types/emergencyAlert.types.ts";
 import validateUser from "../../utils/validateUser.util.ts";
 import { supabaseAdmin } from "../../config/supabase.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 
 const readEmergencyAlertsService = async (
   alertInputData: emergencyAlertInputDTO,
 ) => {
   const now = new Date();
-  const NODE_ENV = process.env.NODE_ENV ?? "production";
   try {
     // 1. Accept and validate the user id
     const { user_id, emergency_id } =
@@ -44,10 +44,9 @@ const readEmergencyAlertsService = async (
         data: [],
         error: {
           code: "EMERGENCY_VALIDATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (emergencyError.message ?? "Error validating emergency")
-              : "Error validating emergency",
+          details: isDev
+            ? (emergencyError.message ?? "Error validating emergency")
+            : "Error validating emergency",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -87,10 +86,9 @@ const readEmergencyAlertsService = async (
         data: [],
         error: {
           code: "EMERGENCY_ALERTS_FETCH_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (fetchError.message ?? "Error fetching emergency alerts")
-              : "Error fetching emergency alerts",
+          details: isDev
+            ? (fetchError.message ?? "Error fetching emergency alerts")
+            : "Error fetching emergency alerts",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -125,10 +123,9 @@ const readEmergencyAlertsService = async (
         data: {},
         error: {
           code: "VALIDATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (error?.message ?? "Emergency data validation error")
-              : "Emergency data validation error",
+          details: isDev
+            ? (error?.message ?? "Emergency data validation error")
+            : "Emergency data validation error",
         },
         metadata: {
           timestamp: now.toISOString(),

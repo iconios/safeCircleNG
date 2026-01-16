@@ -15,12 +15,12 @@ import {
 import validateUser from "../../utils/validateUser.util.ts";
 import validateJourney from "../../utils/validateJourney.util.ts";
 import { supabaseAdmin } from "../../config/supabase.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 
 const readEmergencyByJourneyService = async (
   emergencyDataInput: emergencyInputDTO,
 ) => {
   const now = new Date();
-  const NODE_ENV = process.env.NODE_ENV ?? "production";
   try {
     // 1. Accept and validate user id
     const { user_id, journey_id } =
@@ -47,13 +47,12 @@ const readEmergencyByJourneyService = async (
       return {
         success: false,
         message: "Error reading emergency",
-        data: {},
+        data: null,
         error: {
           code: "EMERGENCY_FETCH_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (error.message ?? "Error fetching emergency")
-              : "Error fetching emergency",
+          details: isDev
+            ? (error.message ?? "Error fetching emergency")
+            : "Error fetching emergency",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -82,13 +81,12 @@ const readEmergencyByJourneyService = async (
       return {
         success: false,
         message: "Emergency data validation error",
-        data: {},
+        data: null,
         error: {
           code: "VALIDATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (error?.message ?? "Emergency data validation error")
-              : "Emergency data validation error",
+          details: isDev
+            ? (error?.message ?? "Emergency data validation error")
+            : "Emergency data validation error",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -99,7 +97,7 @@ const readEmergencyByJourneyService = async (
     return {
       success: false,
       message: "Internal server error",
-      data: {},
+      data: null,
       error: {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while reading emergency",

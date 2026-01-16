@@ -18,13 +18,13 @@ import {
 } from "../../types/emergency.types.ts";
 import validateUser from "../../utils/validateUser.util.ts";
 import { supabaseAdmin } from "../../config/supabase.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 
 const createEmergencyService = async (
   emergencyInput: emergencyInputDTO,
   createEmergencyData: emergencyInsert,
 ) => {
   const now = new Date();
-  const NODE_ENV = process.env.NODE_ENV ?? "production";
   try {
     // 1. Accept and validate the user id
     const { user_id, journey_id } = emergencyInputSchema.parse(emergencyInput);
@@ -116,10 +116,9 @@ const createEmergencyService = async (
         data: {},
         error: {
           code: "EMERGENCY_CREATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (error.message ?? "Error creating emergency")
-              : "Error creating emergency",
+          details: isDev
+            ? (error.message ?? "Error creating emergency")
+            : "Error creating emergency",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -150,10 +149,9 @@ const createEmergencyService = async (
         data: {},
         error: {
           code: "JOURNEY_TERMINATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (terminationError.message ?? "Error terminating journey")
-              : "Error terminating journey",
+          details: isDev
+            ? (terminationError.message ?? "Error terminating journey")
+            : "Error terminating journey",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -186,10 +184,9 @@ const createEmergencyService = async (
         data: {},
         error: {
           code: "VALIDATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (error?.message ?? "Emergency data validation error")
-              : "Emergency data validation error",
+          details: isDev
+            ? (error?.message ?? "Emergency data validation error")
+            : "Emergency data validation error",
         },
         metadata: {
           timestamp: now.toISOString(),

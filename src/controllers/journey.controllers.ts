@@ -13,7 +13,6 @@ import readJourneyService from "../services/journeys/readJourney.service.ts";
 import updateJourneyService from "../services/journeys/updateJourney.service.ts";
 import deleteJourneyService from "../services/journeys/deleteJourney.service.ts";
 import { JourneyInsert, JourneyUpdate } from "../types/journey.types.ts";
-import requireAuth from "../utils/requireAuth.util.ts";
 import resServerError from "../utils/resServerError.util.ts";
 
 // Create journey controller
