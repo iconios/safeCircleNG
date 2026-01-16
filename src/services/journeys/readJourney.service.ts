@@ -8,10 +8,10 @@
 
 import { supabaseAdmin } from "../../config/supabase.ts";
 import { JourneyRow } from "../../types/journey.types.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 import validateUser from "../../utils/validateUser.util.ts";
 
 const readJourneyService = async (userId: string) => {
-  const NODE_ENV = process.env.NODE_ENV ?? "production";
   const now = new Date();
   try {
     // 1. Accept and validate user id
@@ -35,10 +35,9 @@ const readJourneyService = async (userId: string) => {
         data: [],
         error: {
           code: "FETCH_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (journeysError.message ?? "Error fetching journeys")
-              : "Error fetching journeys",
+          details: isDev
+            ? (journeysError.message ?? "Error fetching journeys")
+            : "Error fetching journeys",
         },
         metadata: {
           timestamp: now.toISOString(),

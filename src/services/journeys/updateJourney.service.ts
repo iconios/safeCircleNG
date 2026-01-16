@@ -18,13 +18,13 @@ import {
 } from "../../types/journey.types.ts";
 import validateJourney from "../../utils/validateJourney.util.ts";
 import validateUser from "../../utils/validateUser.util.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 
 const updateJourneyService = async (
   updateJourneyInput: journeyInputDTO,
   updateData: JourneyUpdate,
 ) => {
   const now = new Date();
-  const NODE_ENV = process.env.NODE_ENV ?? "production";
   try {
     // 1. Accept and validate user id
     const { user_id, journey_id } =
@@ -54,13 +54,10 @@ const updateJourneyService = async (
       return {
         success: false,
         message: "Error updating journey",
-        data: {},
+        data: null,
         error: {
           code: "JOURNEY_UPDATE_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? error.message
-              : "Error updating journey",
+          details: isDev ? error.message : "Error updating journey",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -90,7 +87,7 @@ const updateJourneyService = async (
       return {
         success: false,
         message: "Error validating journey update data",
-        data: {},
+        data: null,
         error: {
           code: "VALIDATION_ERROR",
           details: "Error validating journey update data",
@@ -104,7 +101,7 @@ const updateJourneyService = async (
     return {
       success: false,
       message: "Internal server error",
-      data: {},
+      data: null,
       error: {
         code: "INTERNAL_ERROR",
         details: "unexpected error while updating journey",

@@ -8,11 +8,11 @@
 */
 
 import { supabaseAdmin } from "../../config/supabase.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 import validateCircle from "../../utils/validateCircle.util.ts";
 import validateUser from "../../utils/validateUser.util.ts";
 
 const deleteCircleService = async (userId: string, circleId: string) => {
-  const NODE_ENV = process.env.NODE_ENV ?? "production";
   const now = new Date();
   try {
     // 1. Accept and validate the user Id
@@ -37,13 +37,10 @@ const deleteCircleService = async (userId: string, circleId: string) => {
       return {
         success: false,
         message: "Error deleting circle member",
-        data: {},
+        data: null,
         error: {
           code: "CIRCLE_DELETE_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? error.message
-              : "Error deleting circle member",
+          details: isDev ? error.message : "Error deleting circle member",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -56,7 +53,7 @@ const deleteCircleService = async (userId: string, circleId: string) => {
     return {
       success: true,
       message: "Circle member deleted successfully",
-      data: {},
+      data: null,
       error: null,
       metadata: {
         timestamp: now.toISOString(),

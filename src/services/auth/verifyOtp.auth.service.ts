@@ -207,7 +207,7 @@ const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
           : "Service temporarily unavailable",
         data: {},
         error: {
-          code: isOtpError ? "INVALID_OTP" : "SERVICE OUTAGE",
+          code: isOtpError ? "INVALID_OTP" : "SERVICE_OUTAGE",
           details: isOtpError
             ? "Invalid or expired code"
             : "Service temporarily unavailable",

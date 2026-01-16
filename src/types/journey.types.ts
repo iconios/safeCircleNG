@@ -33,8 +33,8 @@ export const JourneyRowSchema = z.object({
   journey_id: z.uuid(),
   user_id: z.uuid(),
   journey_token: z.uuid(),
-  journey_type: journeyTypeEnum,
-  status: journeyStatusEnum,
+  journey_type: journeyTypeEnum.default("personal"),
+  status: journeyStatusEnum.default("active"),
   start_location_name: z.string().min(2).max(100),
   start_latitude: decimalLatCoordinate,
   start_longitude: decimalLngCoordinate,
@@ -49,15 +49,16 @@ export const JourneyRowSchema = z.object({
   completed_at: z.iso.datetime().nullable(),
   terminated_at: timestamp.nullable(),
   termination_reason: z.string(),
-  actual_duration_minutes: z.number().int().min(0).default(0).nullable(),
-  share_with_circle: z.boolean().default(false).nullable(),
-  share_with_organization: z.boolean().default(false).nullable(),
-  share_with_event: z.boolean().default(false).nullable(),
-  extensions_count: z.number().int().min(0).default(0).nullable(),
-  total_extension_minutes: z.number().min(0).default(0).nullable(),
+  actual_duration_minutes: z.number().int().min(0).default(0),
+  share_with_circle: z.boolean().default(false),
+  share_with_organization: z.boolean().default(false),
+  share_with_event: z.boolean().default(false),
+  extensions_count: z.number().int().min(0).default(0),
+  total_extension_minutes: z.number().min(0).default(0),
+  metadata: z.string().nullable(),
   organization_id: z.uuid().nullable(),
   event_id: z.uuid().nullable(),
-  distance_km: z.number().min(0).default(0).nullable(),
+  distance_km: z.number().min(0).default(0),
   battery_start: batteryLevel,
   battery_end: batteryLevel.nullable(),
   created_at: z.iso.datetime().nullable(),
@@ -65,8 +66,6 @@ export const JourneyRowSchema = z.object({
 });
 
 export const JourneyInsertSchema = JourneyRowSchema.pick({
-  journey_token: true,
-  journey_type: true,
   status: true,
   start_location_name: true,
   start_latitude: true,
@@ -77,6 +76,8 @@ export const JourneyInsertSchema = JourneyRowSchema.pick({
   destination_longitude: true,
   destination_address: true,
   started_at: true,
+  metadata: true,
+  battery_start: true,
 }).strict();
 
 export const JourneyUpdateSchema = JourneyRowSchema.omit({
@@ -84,6 +85,7 @@ export const JourneyUpdateSchema = JourneyRowSchema.omit({
   updated_at: true,
   journey_id: true,
   user_id: true,
+  journey_token: true,
 })
   .partial()
   .strict();

@@ -18,12 +18,12 @@ import {
   SafetyCircleInsert,
 } from "../../types/safetyCircle.types.ts";
 import validateUser from "../../utils/validateUser.util.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 
 const createCircleMemberService = async (
   userId: string,
   createCircleData: CreateCircleDataDTO,
 ) => {
-  const NODE_ENV = process.env.NODE_ENV ?? "production";
   const now = new Date(Date.now());
   try {
     // 1. Accept and validate the user Id
@@ -52,13 +52,10 @@ const createCircleMemberService = async (
       return {
         success: false,
         message: "Error creating circle member",
-        data: {},
+        data: null,
         error: {
           code: "CIRCLE_MEMBER_CREATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? circleError.message
-              : "Error creating circle member",
+          details: isDev ? circleError.message : "Error creating circle member",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -91,7 +88,7 @@ const createCircleMemberService = async (
       return {
         success: false,
         message: "Error validating circle data",
-        data: {},
+        data: null,
         error: {
           code: "VALIDATION_ERROR",
           details: "Error validating circle data",
@@ -106,7 +103,7 @@ const createCircleMemberService = async (
     return {
       success: false,
       message: "Internal server error",
-      data: {},
+      data: null,
       error: {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while creating cirle member",

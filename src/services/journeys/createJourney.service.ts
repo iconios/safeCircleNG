@@ -7,7 +7,7 @@
 4. Send response to user
 */
 
-import { ZodError } from "zod";
+import { uuidv4, ZodError } from "zod";
 import {
   JourneyInsert,
   JourneyInsertSchema,
@@ -32,10 +32,12 @@ const createJourneyService = async (
     const validatedInput = JourneyInsertSchema.parse(journeyData);
 
     // 3. Create journey
+    const journey_token = uuidv4();
     const { data, error } = await supabaseAdmin
       .from("journeys")
       .insert({
         user_id: userId,
+        journey_token,
         ...validatedInput,
       })
       .select()

@@ -8,6 +8,7 @@
 
 import { supabaseAdmin } from "../../config/supabase.ts";
 import { SafetyCircleRow } from "../../types/safetyCircle.types.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 import validateUser from "../../utils/validateUser.util.ts";
 
 const readCircleService = async (userId: string) => {
@@ -30,13 +31,10 @@ const readCircleService = async (userId: string) => {
       return {
         success: false,
         message: "Error fetching circle members",
-        data: {},
+        data: null,
         error: {
           code: "FETCH_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? error.message
-              : "Error fetching circle members",
+          details: isDev ? error.message : "Error fetching circle members",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -50,7 +48,7 @@ const readCircleService = async (userId: string) => {
       return {
         success: false,
         message: "No circle members found",
-        data: {},
+        data: null,
         error: {
           code: "NOT_FOUND",
           details: "No circle members found",
@@ -79,7 +77,7 @@ const readCircleService = async (userId: string) => {
     return {
       success: false,
       message: "Internal server error",
-      data: {},
+      data: null,
       error: {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while fetching circle members",

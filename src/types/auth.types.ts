@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PhoneNumberSchema, VerificationCodeSchema } from "./user.types.ts";
+import { Request } from "express";
 
 export const SignUpDataDTOSchema = z
   .object({
@@ -18,3 +19,8 @@ export const VerifyOtpDataSchema = z
   .strict();
 
 export type VerifyOtpDataDTO = z.infer<typeof VerifyOtpDataSchema>;
+
+export interface AuthRequest extends Request {
+  token?: string;
+  userId?: string;
+}

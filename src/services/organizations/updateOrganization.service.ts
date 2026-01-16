@@ -29,7 +29,10 @@ const updateOrganizationService = async (
     });
 
     // 2. Accept, validate and update organization
-    if (Object.keys(updateOrganizationData).length === 0) {
+    const validatedInput = organizationUpdateSchema.parse(
+      updateOrganizationData,
+    );
+    if (Object.keys(validatedInput).length === 0) {
       return {
         success: false,
         message: "Update data empty",
@@ -44,9 +47,6 @@ const updateOrganizationService = async (
         },
       };
     }
-    const validatedInput = organizationUpdateSchema.parse(
-      updateOrganizationData,
-    );
     const { data, error } = await supabaseAdmin
       .from("organizations")
       .update({ ...validatedInput })

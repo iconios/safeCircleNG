@@ -1,0 +1,66 @@
+import { z } from "zod";
+import { timestamp } from "./emergency.types.ts";
+import { PhoneNumberSchema } from "./user.types.ts";
+
+export const channelTypeEnum = z.enum(["sms", "email"]);
+export const messageTypeEnum = z.enum([
+  "journey_start",
+  "journey_end",
+  "emergency",
+  "missed_checkin",
+  "verification",
+  "circle_invite",
+  "extension_granted",
+]);
+export const deliveryStatusEnum = z.enum([
+  "pending",
+  "sent",
+  "failed",
+  "delivered",
+  "read",
+]);
+
+export const messageLogsRowSchema = z
+  .object({
+    id: z.uuid(),
+    created_at: timestamp,
+    journey_id: z.uuid(),
+    emergency_id: z.uuid(),
+    user_id: z.uuid(),
+    to_number: PhoneNumberSchema,
+    to_name: z.string().max(200).nullable(),
+    channel_type: channelTypeEnum.default("sms"),
+    message_type: messageTypeEnum,
+    message_text: z.string(),
+    web_link: z.string().nullable(),
+    web_link_token: z.uuid().nullable(),
+    delivery_status: deliveryStatusEnum.default("pending"),
+    provider_message_id: z.string().max(100).nullable(),
+    provider_status: z.string().nullable(),
+    sent_at: timestamp.nullable(),
+    delivered_at: timestamp.nullable(),
+    read_at: timestamp.nullable(),
+    estimated_cost_ngn: z.number().nullable(),
+    updated_at: timestamp,
+  })
+  .strict();
+
+export const messageLogsInsertSchema = messageLogsRowSchema
+  .pick({
+    journey_id: true,
+    emergency_id: true,
+    user_id: true,
+    to_number: true,
+    to_name: true,
+    channel_type: true,
+    message_type: true,
+    message_text: true,
+    web_link: true,
+  })
+  .strict();
+
+export const messageLogsUpdateSchema = messageLogsRowSchema.omit({
+  created_at: true,
+  updated_at: true,
+  id: true,
+});

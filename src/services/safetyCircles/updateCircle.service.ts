@@ -16,6 +16,7 @@ import {
 } from "../../types/safetyCircle.types.ts";
 import validateCircle from "../../utils/validateCircle.util.ts";
 import validateUser from "../../utils/validateUser.util.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 
 const updateCircleService = async (
   userId: string,
@@ -42,7 +43,7 @@ const updateCircleService = async (
       return {
         success: false,
         message: "No update data provided",
-        data: {},
+        data: null,
         error: {
           code: "EMPTY_UPDATE",
           details: "At least one field must be provided for update",
@@ -71,13 +72,12 @@ const updateCircleService = async (
       return {
         success: false,
         message: "Error while updating circle member",
-        data: {},
+        data: null,
         error: {
           code: "CIRCLE_UPDATE_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? (circleError?.message ?? "Error while updating circle member")
-              : "Error while updating circle member",
+          details: isDev
+            ? (circleError?.message ?? "Error while updating circle member")
+            : "Error while updating circle member",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -106,7 +106,7 @@ const updateCircleService = async (
       return {
         success: false,
         message: "Update data validation error",
-        data: {},
+        data: null,
         error: {
           code: "VALIDATION_ERROR",
           details: error.message,
@@ -122,7 +122,7 @@ const updateCircleService = async (
     return {
       success: false,
       message: "Internal server error",
-      data: {},
+      data: null,
       error: {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while updating circle member",

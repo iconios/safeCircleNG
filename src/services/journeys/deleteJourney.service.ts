@@ -15,10 +15,10 @@ import {
 } from "../../types/journey.types.ts";
 import validateJourney from "../../utils/validateJourney.util.ts";
 import validateUser from "../../utils/validateUser.util.ts";
+import { isDev } from "../../utils/devEnv.util.ts";
 
 const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
   const now = new Date();
-  const NODE_ENV = process.env.NODE_ENV ?? "production";
   try {
     // 1. Accept and validate user id
     const { user_id, journey_id } = journeyInputSchema.parse(deleteJourneyData);
@@ -46,10 +46,7 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
         data: {},
         error: {
           code: "JOURNEY_DELETION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? error.message
-              : "Error deleting journey",
+          details: isDev ? error.message : "Error deleting journey",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -98,10 +95,7 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
         data: {},
         error: {
           code: "VALIDATION_ERROR",
-          details:
-            NODE_ENV === "development"
-              ? error.message
-              : "Error validating journey data",
+          details: isDev ? error.message : "Error validating journey data",
         },
         metadata: {
           timestamp: now.toISOString(),

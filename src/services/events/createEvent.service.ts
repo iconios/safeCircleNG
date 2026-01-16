@@ -49,7 +49,7 @@ const createEventService = async (eventData: eventInsert) => {
     const eventSlug = `${baseSlug}-${randomNumbers}`;
     const admin_secret_key = uuidv4();
     const event_code = `${eventCodePartial}-${randomNumbers}`;
-    const dashboard_url = `${SAFECIRCLE_BASE_URL}/org/${eventSlug}?cc=${event_code}`;
+    const dashboard_url = `${SAFECIRCLE_BASE_URL}/org/${eventSlug}?ec=${event_code}`;
     const start_time = now;
     const end_time = new Date();
     end_time.setDate(end_time.getDate() + EVENT_PERIOD_IN_DAYS);
