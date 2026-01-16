@@ -73,4 +73,4 @@ export const subscriptionInputSchema = z
   })
   .strict();
 
-export type subscriptionInputDTO = z.infer<typeof subscriptionInsertSchema>;
+export type subscriptionInputDTO = z.infer<typeof subscriptionInputSchema>;

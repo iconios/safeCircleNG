@@ -9,7 +9,6 @@ import {
 
 const webLinkAccessRouter = express.Router();
 
-
 // Apply authentication middleware to all routes in this router
 webLinkAccessRouter.use(authenticateToken);
 
