@@ -9,23 +9,18 @@
 import { Response } from "express";
 import createJourneyService from "../services/journeys/createJourney.service.ts";
 import { AuthRequest } from "../types/auth.types.ts";
-import { isDev } from "../utils/devEnv.util.ts";
 import readJourneyService from "../services/journeys/readJourney.service.ts";
 import updateJourneyService from "../services/journeys/updateJourney.service.ts";
 import deleteJourneyService from "../services/journeys/deleteJourney.service.ts";
 import { JourneyInsert, JourneyUpdate } from "../types/journey.types.ts";
-import requireAuth from "../middleware/requireAuth.ts";
+import requireAuth from "../utils/requireAuth.util.ts";
 import resServerError from "../utils/resServerError.util.ts";
 
 // Create journey controller
 const createJourneyController = async (req: AuthRequest, res: Response) => {
   try {
     // 1. Accept and validate user input
-    const userCheck = requireAuth(req);
-    if (!userCheck || typeof userCheck !== "string") {
-      return res.status(401).json(userCheck);
-    }
-    const userId = userCheck;
+    const userId = req.userId as string;
 
     const journeyData = req.body as JourneyInsert;
     if (!journeyData) {
@@ -69,11 +64,7 @@ const createJourneyController = async (req: AuthRequest, res: Response) => {
 const readJourneysController = async (req: AuthRequest, res: Response) => {
   try {
     // 1. Accept and validate user input
-    const userCheck = requireAuth(req);
-    if (!userCheck || typeof userCheck !== "string") {
-      return res.status(401).json(userCheck);
-    }
-    const userId = userCheck;
+    const userId = req.userId as string;
 
     // 2. Pass the data to the service layer for processing
     const result = await readJourneyService(userId);
@@ -99,11 +90,7 @@ const readJourneysController = async (req: AuthRequest, res: Response) => {
 const updateJourneyController = async (req: AuthRequest, res: Response) => {
   try {
     // 1. Accept and validate user input
-    const userCheck = requireAuth(req);
-    if (!userCheck || typeof userCheck !== "string") {
-      return res.status(401).json(userCheck);
-    }
-    const userId = userCheck;
+    const userId = req.userId as string;
     const journeyId = req.params.journeyId;
     const journeyData = req.body as JourneyUpdate;
 
@@ -166,11 +153,7 @@ const updateJourneyController = async (req: AuthRequest, res: Response) => {
 const deleteJourneyController = async (req: AuthRequest, res: Response) => {
   try {
     // 1. Accept and validate user input
-    const userCheck = requireAuth(req);
-    if (!userCheck || typeof userCheck !== "string") {
-      return res.status(401).json(userCheck);
-    }
-    const userId = userCheck;
+    const userId = req.userId as string;
     const journeyId = req.params.journeyId;
 
     if (!journeyId) {

@@ -6,20 +6,21 @@ import {
   updateSafetyCircleController,
 } from "../controllers/safety.circles.controllers.ts";
 import authenticateToken from "../middleware/authenticateToken.ts";
-import { read } from "node:fs";
 
 const safetyCircleRouter = express.Router();
 
-safetyCircleRouter.post("/", authenticateToken, createSafetyCircleController);
-safetyCircleRouter.get("/", authenticateToken, readSafetyCircleController);
+// Apply authentication middleware to all safety circle routes
+safetyCircleRouter.use(authenticateToken);
+
+// Safety Circle Routes
+safetyCircleRouter.post("/", createSafetyCircleController);
+safetyCircleRouter.get("/", readSafetyCircleController);
 safetyCircleRouter.patch(
   "/:safetyCircleId",
-  authenticateToken,
   updateSafetyCircleController,
 );
 safetyCircleRouter.delete(
   "/:safetyCircleId",
-  authenticateToken,
   deleteSafetyCircleController,
 );
 

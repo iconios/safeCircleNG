@@ -9,9 +9,12 @@ import {
 
 const journeyRouter = express.Router();
 
-journeyRouter.post("/", authenticateToken, createJourneyController);
-journeyRouter.get("/", authenticateToken, readJourneysController);
-journeyRouter.patch("/:journeyId", authenticateToken, updateJourneyController);
-journeyRouter.delete("/:journeyId", authenticateToken, deleteJourneyController);
+// Apply authentication middleware to all journey routes
+journeyRouter.use(authenticateToken);
+
+journeyRouter.post("/", createJourneyController);
+journeyRouter.get("/", readJourneysController);
+journeyRouter.patch("/:journeyId", updateJourneyController);
+journeyRouter.delete("/:journeyId", deleteJourneyController);
 
 export default journeyRouter;

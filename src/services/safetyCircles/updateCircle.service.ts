@@ -18,12 +18,11 @@ import validateCircle from "../../utils/validateCircle.util.ts";
 import validateUser from "../../utils/validateUser.util.ts";
 import { isDev } from "../../utils/devEnv.util.ts";
 
-const updateCircleService = async (
+const updateCircleMemberService = async (
   userId: string,
   circleId: string,
   updateCircleData: SafetyCircleUpdate,
 ) => {
-  const NODE_ENV = process.env.NODE_ENV ?? "production";
   const now = new Date();
   try {
     // 1. Accept and validate the user Id
@@ -66,9 +65,9 @@ const updateCircleService = async (
       .eq("id", circleId)
       .eq("user_id", userId)
       .select()
-      .single();
+      .maybeSingle();
 
-    if (circleError || !circleData) {
+    if (circleError) {
       return {
         success: false,
         message: "Error while updating circle member",
@@ -78,6 +77,23 @@ const updateCircleService = async (
           details: isDev
             ? (circleError?.message ?? "Error while updating circle member")
             : "Error while updating circle member",
+        },
+        metadata: {
+          timestamp: now.toISOString(),
+          circle_id: circleId,
+          user_id: userId,
+        },
+      };
+    }
+
+    if (!circleData) {
+      return {
+        success: false,
+        message: "Circle member not found or not updated",
+        data: null,
+        error: {
+          code: "CIRCLE_NOT_FOUND",
+          details: "Circle member not found or not updated",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -136,4 +152,4 @@ const updateCircleService = async (
   }
 };
 
-export default updateCircleService;
+export default updateCircleMemberService;

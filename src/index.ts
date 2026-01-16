@@ -4,6 +4,8 @@ import cors from "cors";
 import extractToken from "./middleware/extractToken.ts";
 import authRouter from "./routes/auth.routes.ts";
 import journeyRouter from "./routes/journey.routes.ts";
+import safetyCircleRouter from "./routes/safety.circle.routes.ts";
+import { authRateLimiter } from "./middleware/rateLimiter.ts";
 dotenv.config();
 
 const app = express();
@@ -15,11 +17,28 @@ if (!PORT) {
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(authRateLimiter);
 app.use(extractToken);
 
 app.get("/health", (_, res) => res.send("OK"));
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/journeys", journeyRouter);
+app.use("/api/v1/safety-circles", safetyCircleRouter);
+
+// No route found handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+    error: {
+      code: "ROUTE_NOT_FOUND",
+      details: `The route ${req.method} ${req.path} does not exist.`,
+    },
+    metadata: {
+      timestamp: new Date().toISOString(),
+    },
+  });
+});
 
 app.listen(PORT, () => {
   console.log("Server running on PORT", PORT);

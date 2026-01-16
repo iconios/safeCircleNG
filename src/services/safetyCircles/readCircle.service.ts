@@ -11,8 +11,7 @@ import { SafetyCircleRow } from "../../types/safetyCircle.types.ts";
 import { isDev } from "../../utils/devEnv.util.ts";
 import validateUser from "../../utils/validateUser.util.ts";
 
-const readCircleService = async (userId: string) => {
-  const NODE_ENV = process.env.NODE_ENV ?? "production";
+const readCircleMemberService = async (userId: string) => {
   const now = new Date(Date.now());
   try {
     // 1. Accept and validate the user Id
@@ -90,4 +89,4 @@ const readCircleService = async (userId: string) => {
   }
 };
 
-export default readCircleService;
+export default readCircleMemberService;

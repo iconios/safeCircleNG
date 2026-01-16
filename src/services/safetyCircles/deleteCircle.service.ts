@@ -12,7 +12,7 @@ import { isDev } from "../../utils/devEnv.util.ts";
 import validateCircle from "../../utils/validateCircle.util.ts";
 import validateUser from "../../utils/validateUser.util.ts";
 
-const deleteCircleService = async (userId: string, circleId: string) => {
+const deleteCircleMemberService = async (userId: string, circleId: string) => {
   const now = new Date();
   try {
     // 1. Accept and validate the user Id
@@ -80,4 +80,4 @@ const deleteCircleService = async (userId: string, circleId: string) => {
   }
 };
 
-export default deleteCircleService;
+export default deleteCircleMemberService;
