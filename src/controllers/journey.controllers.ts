@@ -7,13 +7,13 @@
 */
 
 import { Response } from "express";
-import createJourneyService from "../services/journeys/createJourney.service.ts";
-import { AuthRequest } from "../types/auth.types.ts";
-import readJourneyService from "../services/journeys/readJourney.service.ts";
-import updateJourneyService from "../services/journeys/updateJourney.service.ts";
-import deleteJourneyService from "../services/journeys/deleteJourney.service.ts";
-import { JourneyInsert, JourneyUpdate } from "../types/journey.types.ts";
-import resServerError from "../utils/resServerError.util.ts";
+import createJourneyService from "../services/journeys/createJourney.service";
+import { AuthRequest } from "../types/auth.types";
+import readJourneyService from "../services/journeys/readJourney.service";
+import updateJourneyService from "../services/journeys/updateJourney.service";
+import deleteJourneyService from "../services/journeys/deleteJourney.service";
+import { JourneyInsert, JourneyUpdate } from "../types/journey.types";
+import resServerError from "../utils/resServerError.util";
 
 // Create journey controller
 const createJourneyController = async (req: AuthRequest, res: Response) => {

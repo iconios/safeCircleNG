@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { timestamp } from "./emergency.types.ts";
-import { PhoneNumberSchema } from "./user.types.ts";
+import { timestamp } from "./emergency.types";
+import { PhoneNumberSchema } from "./user.types";
 
 export const channelTypeEnum = z.enum(["sms", "email"]);
+
 export const messageTypeEnum = z.enum([
   "journey_start",
   "journey_end",
@@ -12,12 +13,15 @@ export const messageTypeEnum = z.enum([
   "circle_invite",
   "extension_granted",
 ]);
+export type messageType = z.infer<typeof messageTypeEnum>;
+
 export const deliveryStatusEnum = z.enum([
   "pending",
   "sent",
   "failed",
   "delivered",
   "read",
+  "rejected",
 ]);
 
 export const messageLogsRowSchema = z
@@ -25,7 +29,7 @@ export const messageLogsRowSchema = z
     id: z.uuid(),
     created_at: timestamp,
     journey_id: z.uuid(),
-    emergency_id: z.uuid(),
+    emergency_id: z.uuid().nullable(),
     user_id: z.uuid(),
     to_number: PhoneNumberSchema,
     to_name: z.string().max(200).nullable(),
@@ -49,13 +53,13 @@ export const messageLogsInsertSchema = messageLogsRowSchema
   .pick({
     journey_id: true,
     emergency_id: true,
-    user_id: true,
     to_number: true,
     to_name: true,
     channel_type: true,
     message_type: true,
     message_text: true,
     web_link: true,
+    web_link_token: true,
   })
   .strict();
 
@@ -64,3 +68,22 @@ export const messageLogsUpdateSchema = messageLogsRowSchema.omit({
   updated_at: true,
   id: true,
 });
+
+export type messageLogsRow = z.infer<typeof messageLogsRowSchema>;
+export type messageLogsInsert = z.infer<typeof messageLogsInsertSchema>;
+export type messageLogsUpdate = z.infer<typeof messageLogsUpdateSchema>;
+
+export const smsResponseDataSchema = z.object({
+  message_text: z.string(),
+  web_link_token: z.string(),
+  journey_id: z.string(),
+  emergency_id: z.string().nullable(),
+  to_number: z.string(),
+  to_name: z.string(),
+  web_link: z.string(),
+  channel_type: channelTypeEnum,
+  message_type: messageTypeEnum,
+  delivery_status: deliveryStatusEnum,
+});
+
+export type smsResponseData = z.infer<typeof smsResponseDataSchema>;

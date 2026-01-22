@@ -8,17 +8,17 @@
 */
 
 import { ZodError } from "zod";
-import { supabaseAdmin } from "../../config/supabase.ts";
+import { supabaseAdmin } from "../../config/supabase";
 import {
   journeyInputDTO,
   journeyInputSchema,
   JourneyRow,
   JourneyUpdate,
   JourneyUpdateSchema,
-} from "../../types/journey.types.ts";
-import validateJourney from "../../utils/validateJourney.util.ts";
-import validateUser from "../../utils/validateUser.util.ts";
-import { isDev } from "../../utils/devEnv.util.ts";
+} from "../../types/journey.types";
+import validateJourney from "../../utils/validateJourney.util";
+import validateUser from "../../utils/validateUser.util";
+import { isDev } from "../../utils/devEnv.util";
 
 const updateJourneyService = async (
   updateJourneyInput: journeyInputDTO,

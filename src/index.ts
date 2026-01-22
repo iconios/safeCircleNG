@@ -1,20 +1,21 @@
 import express from "express";
 import * as dotenv from "dotenv";
 import cors from "cors";
-import extractToken from "./middleware/extractToken.ts";
-import authRouter from "./routes/auth.routes.ts";
-import journeyRouter from "./routes/journey.routes.ts";
-import safetyCircleRouter from "./routes/safety.circle.routes.ts";
-import { authRateLimiter } from "./middleware/rateLimiter.ts";
-import journeyLocationRouter from "./routes/journey.location.routes.ts";
-import journeySharesRouter from "./routes/journey.shares.routes.ts";
-import emergencyRouter from "./routes/emergency.routes.ts";
-import emergencyAlertsRouter from "./routes/emergency.alerts.routes.ts";
-import webLinkAccessRouter from "./routes/web.link.access.routes.ts";
-import subscriptionRouter from "./routes/subscription.routes.ts";
-import paymentRouter from "./routes/payment.routes.ts";
-import organizationRouter from "./routes/organization.routes.ts";
-import eventRouter from "./routes/event.routes.ts";
+import extractToken from "./middleware/extractToken";
+import authRouter from "./routes/auth.routes";
+import journeyRouter from "./routes/journey.routes";
+import safetyCircleRouter from "./routes/safety.circle.routes";
+import { authRateLimiter } from "./middleware/rateLimiter";
+import journeyLocationRouter from "./routes/journey.location.routes";
+import journeySharesRouter from "./routes/journey.shares.routes";
+import emergencyRouter from "./routes/emergency.routes";
+import emergencyAlertsRouter from "./routes/emergency.alerts.routes";
+import webLinkAccessRouter from "./routes/web.link.access.routes";
+import subscriptionRouter from "./routes/subscription.routes";
+import paymentRouter from "./routes/payment.routes";
+import organizationRouter from "./routes/organization.routes";
+import eventRouter from "./routes/event.routes";
+import messageLogsRouter from "./routes/message.logs.routes";
 dotenv.config();
 
 const app = express();
@@ -42,6 +43,7 @@ app.use("/api/v1/subscriptions", subscriptionRouter);
 app.use("/api/v1/payments", paymentRouter);
 app.use("/api/v1/organizations", organizationRouter);
 app.use("/api/v1/events", eventRouter);
+app.use("/api/v1/message-logs", messageLogsRouter);
 
 // No route found handler
 app.use((req, res) => {

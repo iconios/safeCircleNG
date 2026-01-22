@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "../config/supabase.ts";
+import { supabaseAdmin } from "../config/supabase";
 
 const validateJourney = async (userId: string, journeyId: string, at: Date) => {
   try {

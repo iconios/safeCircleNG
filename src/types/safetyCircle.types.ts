@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PhoneNumberSchema } from "./user.types.ts";
+import { PhoneNumberSchema } from "./user.types";
 
 export const SafetyCircleRowSchema = z.object({
   id: z.uuid(),
@@ -69,3 +69,32 @@ export const CreateCircleDataSchema = SafetyCircleRowSchema.pick({
   .strict();
 
 export type CreateCircleDataDTO = z.infer<typeof CreateCircleDataSchema>;
+
+export const alertCircleInputSchema = z
+  .object({
+    user_id: z.uuid(),
+    journey_id: z.uuid(),
+    emergency_id: z.uuid().nullable(),
+  })
+  .strict();
+
+export type alertCircleInput = z.infer<typeof alertCircleInputSchema>;
+
+export const alertSMSResponseSchema = z
+  .object({
+    contactName: z.string(),
+    contactPhone: z.string(),
+  })
+  .strict();
+
+export type alertSMSResponse = z.infer<typeof alertSMSResponseSchema>;
+
+export const alertMessageTypeSchema = z.enum([
+  "emergency",
+  "missed_checkin",
+  "journey_start",
+  "journey_end",
+  "circle_invite",
+  "extension_granted",
+]);
+export type alertMessageType = z.infer<typeof alertMessageTypeSchema>;

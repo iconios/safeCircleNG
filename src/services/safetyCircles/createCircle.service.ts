@@ -11,14 +11,14 @@
 */
 
 import { ZodError } from "zod";
-import { supabaseAdmin } from "../../config/supabase.ts";
+import { supabaseAdmin } from "../../config/supabase";
 import {
   CreateCircleDataDTO,
   CreateCircleDataSchema,
   SafetyCircleInsert,
-} from "../../types/safetyCircle.types.ts";
-import validateUser from "../../utils/validateUser.util.ts";
-import { isDev } from "../../utils/devEnv.util.ts";
+} from "../../types/safetyCircle.types";
+import validateUser from "../../utils/validateUser.util";
+import { isDev } from "../../utils/devEnv.util";
 
 const createCircleMemberService = async (
   userId: string,

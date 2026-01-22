@@ -1,27 +1,24 @@
-// Create Journey Service
+// Create message log service
 /*
 #Plan:
-1. Accept and validate userId
-2. Accept and validate journey data
-3. Create journey
-4. Notify circle members
-    - Fetch the circle members
-    - Send SMS with unique link to each circle member
-5. Send response to user
+1. Accept and validate user id
+2. Accept and validate message log data
+3. Create message log
+4. Send response to the user
 */
 
-import { uuidv4, ZodError } from "zod";
+import { ZodError } from "zod";
 import {
-  JourneyInsert,
-  JourneyInsertSchema,
-  JourneyRow,
-} from "../../types/journey.types";
+  messageLogsInsert,
+  messageLogsInsertSchema,
+} from "../../types/messageLogs.types";
 import validateUser from "../../utils/validateUser.util";
 import { supabaseAdmin } from "../../config/supabase";
+import { isDev } from "../../utils/devEnv.util";
 
-const createJourneyService = async (
+const createMessageLogService = async (
   userId: string,
-  journeyData: JourneyInsert,
+  logData: messageLogsInsert,
 ) => {
   const now = new Date();
   try {
@@ -31,29 +28,29 @@ const createJourneyService = async (
       return userValidation;
     }
 
-    // 2. Accept and validate journey data
-    const validatedInput = JourneyInsertSchema.parse(journeyData);
+    // 2. Accept and validate message log data
+    const validatedInput = messageLogsInsertSchema.parse(logData);
 
-    // 3. Create journey
-    const journey_token = uuidv4();
+    // 3. Create message log
     const { data, error } = await supabaseAdmin
-      .from("journeys")
+      .from("message_logs")
       .insert({
         user_id: userId,
-        journey_token,
         ...validatedInput,
       })
       .select()
       .single();
 
-    if (error || !data) {
+    if (error) {
       return {
         success: false,
-        message: "Error creating journey",
+        message: "Error creating message log",
         data: null,
         error: {
-          code: "JOURNEY_CREATION_ERROR",
-          details: error?.message ?? "Journey creation failed",
+          code: "MESSAGE_LOG_CREATION_ERROR",
+          details: isDev
+            ? (error?.message ?? "Error creating message log")
+            : "Error creating message log",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -62,12 +59,11 @@ const createJourneyService = async (
       };
     }
 
-    // 4. Send response to user
-    const createdJourney: JourneyRow = data;
+    // 4. Send response to the user
     return {
       success: true,
-      message: "Journey created successfully",
-      data: createdJourney,
+      message: "Message log created successfully",
+      data,
       error: null,
       metadata: {
         timestamp: now.toISOString(),
@@ -75,15 +71,18 @@ const createJourneyService = async (
       },
     };
   } catch (error) {
-    console.error("createJourneyService error:", error);
+    console.error("createMessageLogService error:", error);
+
     if (error instanceof ZodError) {
       return {
         success: false,
-        message: "Journey data validation error",
+        message: "Message log data validation error",
         data: null,
         error: {
           code: "VALIDATION_ERROR",
-          details: error?.message ?? "Journey data validation error",
+          details: isDev
+            ? (error?.message ?? "Message log data validation error")
+            : "Message log data validation error",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -98,7 +97,7 @@ const createJourneyService = async (
       data: null,
       error: {
         code: "INTERNAL_ERROR",
-        details: "Unexpected error while creating journey",
+        details: "Unexpected error while creating message log",
       },
       metadata: {
         timestamp: now.toISOString(),
@@ -108,4 +107,4 @@ const createJourneyService = async (
   }
 };
 
-export default createJourneyService;
+export default createMessageLogService;

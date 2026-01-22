@@ -7,9 +7,10 @@
 */
 
 import { NextFunction, Response } from "express";
-import { AuthRequest } from "../types/auth.types.ts";
+import { AuthRequest, tokenPayload } from "../types/auth.types.ts";
 import { supabaseAdmin } from "../config/supabase.ts";
 import { isDev } from "../utils/devEnv.util.ts";
+import jwt from "jsonwebtoken";
 
 const authenticateToken = async (
   req: AuthRequest,
@@ -17,6 +18,10 @@ const authenticateToken = async (
   next: NextFunction,
 ) => {
   const now = new Date();
+  const JWT_SECRET = process.env.JWT_SECRET;
+  if (!JWT_SECRET) {
+    throw new Error("JWT SECRET is required");
+  }
   try {
     // 1. Accept and validate token
     if (!req.token || typeof req.token !== "string") {
@@ -35,20 +40,37 @@ const authenticateToken = async (
     }
 
     // 2. Authenticate token
-    const {
-      data: { user },
-      error,
-    } = await supabaseAdmin.auth.getUser(req.token);
-    if (error) {
+    const decoded: tokenPayload = await jwt.verify(req.token, JWT_SECRET);
+    if (typeof decoded !== "object") {
       return res.status(401).json({
         success: false,
-        message: "Error authenticating user",
+        message: "Invalid token",
         data: null,
         error: {
-          code: "USER_AUTH_ERROR",
+          code: "INVALID_TOKEN",
+          details: "Invalid token",
+        },
+        metadata: {
+          timestamp: now.toISOString(),
+        },
+      });
+    }
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("id", decoded.userId)
+      .eq("phone_number", decoded.phoneNumber)
+      .maybeSingle();
+    if (userError) {
+      return res.status(401).json({
+        success: false,
+        message: "Error fetching user",
+        data: null,
+        error: {
+          code: "USER_FETCH_ERROR",
           details: isDev
-            ? (error.message ?? "Error authenticating user")
-            : "Error authenticating user",
+            ? (userError.message ?? "Error fetching user")
+            : "Error fetching user",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -56,7 +78,7 @@ const authenticateToken = async (
       });
     }
 
-    if (user === null) {
+    if (!userData) {
       return res.status(401).json({
         success: false,
         message: "User not found",
@@ -72,10 +94,25 @@ const authenticateToken = async (
     }
 
     // 3. Attach user id to request
-    req.userId = user.id;
+    req.userId = userData.id;
     next();
   } catch (error) {
     console.error("authenticateToken error:", error);
+
+    if (error instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({
+        success: false,
+        message: "Expired token",
+        data: null,
+        error: {
+          code: "EXPIRED_TOKEN",
+          details: "Expired token",
+        },
+        metadata: {
+          timestamp: now.toISOString(),
+        },
+      });
+    }
 
     return res.status(500).json({
       success: false,

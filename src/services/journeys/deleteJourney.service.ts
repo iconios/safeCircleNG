@@ -43,7 +43,7 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
       return {
         success: false,
         message: "Error deleting journey",
-        data: {},
+        data: null,
         error: {
           code: "JOURNEY_DELETION_ERROR",
           details: isDev ? error.message : "Error deleting journey",
@@ -60,7 +60,7 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
       return {
         success: false,
         message: "Journey not found",
-        data: {},
+        data: null,
         error: {
           code: "NOT_FOUND",
           details: "Journey no longer exists",
@@ -77,7 +77,7 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
     return {
       success: true,
       message: "Journey deleted successfully",
-      data: {},
+      data: null,
       error: null,
       metadata: {
         timestamp: now.toISOString(),
@@ -92,7 +92,7 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
       return {
         success: false,
         message: "Error validating journey data",
-        data: {},
+        data: null,
         error: {
           code: "VALIDATION_ERROR",
           details: isDev ? error.message : "Error validating journey data",
@@ -106,7 +106,7 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
     return {
       success: false,
       message: "Internal server error",
-      data: {},
+      data: null,
       error: {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while deleting journey",

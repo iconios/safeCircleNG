@@ -6,17 +6,19 @@
 3. Handle success and error responses
 */
 
-import resServerError from "../utils/resServerError.util.ts";
+import resServerError from "../utils/resServerError.util";
 import { Response } from "express";
-import { AuthRequest } from "../types/auth.types.ts";
+import { AuthRequest } from "../types/auth.types";
 import {
+  alertMessageType,
   CreateCircleDataDTO,
   SafetyCircleUpdate,
-} from "../types/safetyCircle.types.ts";
-import createCircleMemberService from "../services/safetyCircles/createCircle.service.ts";
-import readCircleMemberService from "../services/safetyCircles/readCircle.service.ts";
-import updateCircleMemberService from "../services/safetyCircles/updateCircle.service.ts";
-import deleteCircleMemberService from "../services/safetyCircles/deleteCircle.service.ts";
+} from "../types/safetyCircle.types";
+import createCircleMemberService from "../services/safetyCircles/createCircle.service";
+import readCircleMemberService from "../services/safetyCircles/readCircle.service";
+import updateCircleMemberService from "../services/safetyCircles/updateCircle.service";
+import deleteCircleMemberService from "../services/safetyCircles/deleteCircle.service";
+import alertCircleMembersService from "../services/safetyCircles/alertCircle.service";
 
 // Create Safety Circle Controller
 const createSafetyCircleController = async (
@@ -206,9 +208,86 @@ const deleteSafetyCircleController = async (
     resServerError(res, error);
   }
 };
+
+const alertCircleMembersController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    // 1. Accept and validate user input
+    const user_id = req.userId as string;
+
+    const journey_id = req.params.journeyId as string;
+    if (!journey_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Journey id is required",
+        data: null,
+        error: {
+          code: "JOURNEY_ID_REQUIRED",
+          details: "Journey id is required",
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    const emergency_id = req.body.emergencyId as string | null; // emergencyId is optional
+    const message_type = req.body.messageType as alertMessageType;
+    if (!message_type) {
+      return res.status(400).json({
+        success: false,
+        message: "Message type is required",
+        data: null,
+        error: {
+          code: "MESSAGE_TYPE_REQUIRED",
+          details: "Message type is required",
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+    // 2. Pass the data to the service layer for processing
+    const result = await alertCircleMembersService({
+      user_id,
+      journey_id,
+      emergency_id,
+    }, message_type);
+
+    // 3. Handle success and error responses
+    if (!result.success) {
+      switch (result.error?.code) {
+        case "USER_NOT_FOUND":
+        case "JOURNEY_NOT_FOUND":
+        case "EMERGENCY_NOT_FOUND":
+        case "CIRCLE_MEMBERS_NOT_FOUND":
+          return res.status(404).json(result);
+
+        case "USER_CONFIRMATION_ERROR":
+        case "JOURNEY_CONFIRMATION_ERROR":
+        case "CIRCLE_MEMBERS_FETCH_ERROR":
+        case "VALIDATION_ERROR":
+          return res.status(422).json(result);
+
+        case "JOURNEY_ID_REQUIRED":
+          return res.status(400).json(result);
+        default:
+          return res.status(500).json(result);
+      }
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    resServerError(res, error);
+  }
+};
+
 export {
   createSafetyCircleController,
   readSafetyCircleController,
   updateSafetyCircleController,
   deleteSafetyCircleController,
+  alertCircleMembersController,
 };

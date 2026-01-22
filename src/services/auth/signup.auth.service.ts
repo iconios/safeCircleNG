@@ -1,87 +1,123 @@
 // Sign Up Auth Service
 /*
 #Plan:
-1. Get and validates the phone number format and device_id format
-2. Checks whether the phone number already exists in the db
-3. If the number already exists, the user is informed to log in instead
-    - check signup rate limits / lockout rules
-    - check if an OTP was recently requested, reject with: 
-        "Please wait x minutes before requesting another code"
-4. If the phone number never existed:
-	a. the user is created in the supabase Auth wih phone number
-	b. the user is created in the users table
-    - link via auth user id
-    - set status = "pending_verification"
-5. Request OTP via Supabase Auth:
-  a. Call "signInWithOtp({ phone })"
-  b. Supabase generates and stores OTP
-  c. Supabase triggers Send SMS Hook
-  d. Update last_otp_requested_at after sending OTP
-6. Send OTP via SMS 
+1. Validate input (phone, device_id)
+2. Fetch user by phone
+   a. If exists AND status = suspended
+      → reject
+   b. If exists AND phone_verified = true
+      → reject ("User already exists. Please log in")
+3. If user exists:
+   a. Enforce otp_locked_until
+   b. Enforce cooldown (last_otp_requested_at)
+   c. Normalize hourly/daily windows
+   d. Enforce limits:
+      - otp_requests_last_hour >= 3 → reject
+      - otp_requests_today >= 10 → reject
+4. If user does NOT exist:
+   a. Create user with:
+      - phone_verified = false
+      - status = pending_verification
+      - otp_requests_last_hour = 0
+      - otp_requests_today = 0
+      - otp_hour_window_started_at = now
+      - otp_day_window_started_at = now
+5. createOtpService handles:
+  a. Create OTP (type = signup)
+    - hash
+    - store
+    - send SMS
+  b. Set otp metadata
+   - last_otp_requested_at
+   - otp_requests_last_hour
+   - otp_requests_today
+   - window timestamps
 */
 
 import { ZodError } from "zod";
-import { SignUpDataDTO, SignUpDataDTOSchema } from "../../types/auth.types.ts";
-import { supabaseAdmin } from "../../config/supabase.ts";
-import { subscriptionExpiresAt } from "../../utils/calculateExpiry.util.ts";
-import HashString from "../../utils/hashString.util.ts";
-import { OTP_COOLDOWN_MS } from "../../config/auth.ts";
-import { isDev } from "../../utils/devEnv.util.ts";
-
-export const sendOtp = async (phone_number: string) => {
-  try {
-    const { error } = await supabaseAdmin.auth.signInWithOtp({
-      phone: phone_number,
-      options: {
-        shouldCreateUser: false,
-        channel: "sms",
-      },
-    });
-
-    if (error) {
-      if (isDev) {
-        console.error("OTP send failed:", error);
-      }
-      throw new Error(error.message ?? "SMS_FAILED");
-    }
-  } catch (error) {
-    if (isDev) {
-      console.error("SMS Failed", error);
-    }
-  }
-};
-
-export const updateOtpTimestamp = async (id: string, at: Date) => {
-  await supabaseAdmin
-    .from("users")
-    .update({
-      last_otp_requested_at: at.toISOString(),
-    })
-    .eq("id", id);
-};
+import { SignUpDataDTO, SignUpDataDTOSchema } from "../../types/auth.types";
+import { supabaseAdmin } from "../../config/supabase";
+import { subscriptionExpiresAt } from "../../utils/calculateExpiry.util";
+import HashString from "../../utils/hashString.util";
+import { OTP_COOLDOWN_MS } from "../../config/auth";
+import { isDev } from "../../utils/devEnv.util";
+import createOtpService from "../otps/createOtp.service";
+import {
+  isDayWindowExpired,
+  isHourWindowExpired,
+} from "../../utils/windowExpired.util";
 
 const signUpAuthService = async (signUpData: SignUpDataDTO) => {
   const now: Date = new Date(Date.now());
   try {
-    // 1. Get and validates the phone number format and device_id format
+    // 1. Validate input (phone, device_id)
     const { phone_number, device_id } = SignUpDataDTOSchema.parse(signUpData);
 
-    // 2. Checks whether the phone number already exists in the db
-    const { data: existingUser } = await supabaseAdmin
+    // 2. Fetch user by phone
+    const { data: existingUser, error: fetchError } = await supabaseAdmin
       .from("users")
       .select(
-        "id, phone_number, phone_verified, last_otp_requested_at, otp_locked_until",
+        "id, phone_number, phone_verified, last_otp_requested_at, otp_locked_until, status, otp_hour_window_started_at, otp_requests_last_hour, otp_day_window_started_at, otp_requests_today",
       )
       .eq("phone_number", phone_number)
       .maybeSingle();
 
-    // 3. If the number already exists, the user is informed to log in instead
-    if (existingUser) {
-      // - check signup rate limits / lockout rules
-      // - check if an OTP was recently requested, reject with:
-      //    "Please wait x minutes before requesting another code"
+    if (fetchError) {
+      return {
+        success: false,
+        message: "Unable to process request",
+        data: null,
+        error: {
+          code: "USER_FETCH_ERROR",
+          details: "Unable to process request",
+        },
+        metadata: {
+          timestamp: now.toISOString(),
+        },
+      };
+    }
+
+    // a. If exists AND status = suspended
+    //      → reject
+    if (existingUser?.status === "suspended") {
+      return {
+        success: false,
+        message: "Account suspended. Contact support",
+        data: null,
+        error: {
+          code: "USER_SUSPENDED",
+          details: "Account suspended. Contact support",
+        },
+        metadata: {
+          timestamp: now.toISOString(),
+          phoneNumber: phone_number,
+        },
+      };
+    }
+
+    //  b. If exists AND phone_verified = true
+    //     → reject ("User already exists. Please log in")
+    if (existingUser?.phone_verified) {
+      return {
+        success: false,
+        message: "User already exists. Please log in",
+        data: null,
+        error: {
+          code: "USER_EXISTS",
+          details: "User already exists",
+        },
+        metadata: {
+          timestamp: now.toISOString(),
+          phoneNumber: phone_number,
+        },
+      };
+    }
+
+    //  3. If user exists:
+    //  a. Enforce otp_locked_until
+    if (existingUser && !existingUser.phone_verified) {
       if (
-        existingUser.otp_locked_until &&
+        existingUser?.otp_locked_until &&
         now < new Date(existingUser.otp_locked_until)
       ) {
         const remainingMs =
@@ -102,28 +138,13 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
         };
       }
 
-      if (existingUser.phone_verified) {
-        return {
-          success: false,
-          message: "User already exists. Please log in",
-          data: null,
-          error: {
-            code: "USER_EXISTS",
-            details: "User already exists",
-          },
-          metadata: {
-            timestamp: now.toISOString(),
-            phoneNumber: phone_number,
-          },
-        };
-      }
-
-      if (!existingUser.phone_verified) {
+      //  b. Enforce cooldown (last_otp_requested_at)
+      if (existingUser?.last_otp_requested_at) {
         const diffMs =
           Date.now() - new Date(existingUser.last_otp_requested_at).getTime();
         const isInCooldown = diffMs < OTP_COOLDOWN_MS;
-        const remainingSeconds = Math.ceil((OTP_COOLDOWN_MS - diffMs) / 1000);
         if (isInCooldown) {
+          const remainingSeconds = Math.ceil((OTP_COOLDOWN_MS - diffMs) / 1000);
           return {
             success: false,
             message: `Wait ${remainingSeconds} seconds to request new OTP`,
@@ -138,52 +159,84 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
             },
           };
         }
+      }
 
-        await sendOtp(phone_number);
-        await updateOtpTimestamp(existingUser.id, now);
+      //  c. Normalize hourly/daily windows
+      const hourWindowExpired = isHourWindowExpired(
+        existingUser.otp_hour_window_started_at,
+        now,
+      );
+      const effectiveHourlyCount = hourWindowExpired
+        ? 0
+        : (existingUser.otp_requests_last_hour ?? 0);
+
+      const dayWindowExpired = isDayWindowExpired(
+        existingUser.otp_day_window_started_at,
+        now,
+      );
+      const effectiveDailyCount = dayWindowExpired
+        ? 0
+        : (existingUser.otp_requests_today ?? 0);
+
+      //  d. Enforce limits:
+      //     - otp_requests_last_hour >= 3 → reject
+      //     - otp_requests_today >= 10 → reject
+      if (effectiveHourlyCount >= 3) {
         return {
-          success: true,
-          message: "Verification OTP sent via SMS",
+          success: false,
+          message: "Too many requests. Try again later",
           data: null,
-          error: null,
+          error: {
+            code: "LIMIT_EXCEEDED",
+            details: "Too many requests. Try again later",
+          },
           metadata: {
             timestamp: now.toISOString(),
             phoneNumber: phone_number,
           },
         };
       }
+
+      if (effectiveDailyCount >= 10) {
+        return {
+          success: false,
+          message: "Daily limit exceeded. Try again later",
+          data: null,
+          error: {
+            code: "LIMIT_EXCEEDED",
+            details: "Daily limit exceeded. Try again later",
+          },
+          metadata: {
+            timestamp: now.toISOString(),
+            phoneNumber: phone_number,
+          },
+        };
+      }
+
+      // createOtpService handles:
+      // a. Create OTP (type = signup)
+      //   - hash
+      //   - store
+      //   - send SMS
+      // b. Set otp metadata
+      //  - last_otp_requested_at
+      //  - otp_requests_last_hour
+      //  - otp_requests_today
+      //  - window timestamps
+      return await createOtpService(phone_number, "signup", existingUser.id);
     }
 
-    // 4. If the phone number never existed
-    // a. the user is created in the authentication space
-    const { data: authData, error: authError } =
-      await supabaseAdmin.auth.admin.createUser({
-        phone: phone_number,
-        phone_confirm: false,
-      });
-    if (authError) {
-      return {
-        success: false,
-        message: "Error creating auth user. Try again",
-        data: null,
-        error: {
-          code: "ERROR_CREATE_USER",
-          details: "Error creating auth user",
-        },
-        metadata: {
-          timestamp: now.toISOString(),
-          phoneNumber: phone_number,
-        },
-      };
-    }
-
-    // b. the user is created in the users table
-    // - link via auth user id
-    // - set status = "pending_verification"
-    const { error: userError } = await supabaseAdmin
+    // 4. If user does NOT exist:
+    //  a. Create user with:
+    //     - phone_verified = false
+    //     - status = pending_verification
+    //     - otp_requests_last_hour = 0
+    //     - otp_requests_today = 0
+    //     - otp_hour_window_started_at = now
+    //     - otp_day_window_started_at = now
+    const { data: userData, error: userError } = await supabaseAdmin
       .from("users")
       .insert({
-        id: authData.user.id,
         phone_number,
         phone_verified: false,
         user_type: "individual",
@@ -191,20 +244,24 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
         subscription_expires_at: subscriptionExpiresAt(),
         device_id: await HashString(device_id),
         status: "pending_verification",
-        last_otp_requested_at: now.toISOString(),
+        otp_requests_last_hour: 0,
+        otp_requests_today: 0,
+        otp_hour_window_started_at: now,
+        otp_day_window_started_at: now,
       })
-      .select()
+      .select("id")
       .single();
 
     if (userError) {
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       return {
         success: false,
         message: "Error creating user. Try again",
         data: null,
         error: {
           code: "CREATE_USER_ERROR",
-          details: "Error creating user",
+          details: isDev
+            ? (userError ?? "Error creating user")
+            : "Error creating user",
         },
         metadata: {
           timestamp: now.toISOString(),
@@ -213,26 +270,17 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
       };
     }
 
-    // 5. Request OTP via Supabase Auth:
-    // a. Call "signInWithOtp({ phone })"
-    // b. Supabase generates and stores OTP
-    // c. Supabase triggers Send SMS Hook
-    await sendOtp(phone_number);
-
-    // d. Update last_otp_requested_at after sending OTP
-    await updateOtpTimestamp(authData.user.id, now);
-
-    // e. the user is informed to check the appropriate channel for the otp
-    return {
-      success: true,
-      message: "Verification OTP sent via SMS",
-      data: null,
-      error: null,
-      metadata: {
-        timestamp: now.toISOString(),
-        phoneNumber: phone_number,
-      },
-    };
+    // 5. createOtpService handles:
+    // a. Create OTP (type = signup)
+    //   - hash
+    //   - store
+    //   - send SMS
+    // b. Set otp metadata
+    //  - last_otp_requested_at
+    //  - otp_requests_last_hour
+    //  - otp_requests_today
+    //  - window timestamps
+    return await createOtpService(phone_number, "signup", userData.id);
   } catch (error) {
     console.error("signUpAuthService error:", error);
 

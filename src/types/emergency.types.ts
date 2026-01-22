@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { decimalLatCoordinate, decimalLngCoordinate } from "./journey.types.ts";
+import { decimalLatCoordinate, decimalLngCoordinate } from "./journey.types";
 
 const emergencyTypeEnum = z.enum(["sos", "manual", "missed_checkin"]);
 const triggerMethodEnum = z.enum(["shake", "button", "auto"]);

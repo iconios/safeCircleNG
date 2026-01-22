@@ -7,10 +7,16 @@
 */
 
 import { Request, Response } from "express";
-import signUpAuthService from "../services/auth/signup.auth.service.ts";
-import verifyOtpAuthService from "../services/auth/verifyOtp.auth.service.ts";
-import resServerError from "../utils/resServerError.util.ts";
-import { SignUpDataDTO, VerifyOtpDataDTO } from "../types/auth.types.ts";
+import signUpAuthService from "../services/auth/signup.auth.service";
+import verifyOtpAuthService from "../services/auth/verifyOtp.auth.service";
+import resServerError from "../utils/resServerError.util";
+import {
+  AuthRequest,
+  loginInputDTO,
+  SignUpDataDTO,
+  VerifyOtpDataDTO,
+} from "../types/auth.types";
+import loginAuthService from "../services/auth/login.auth.service";
 
 const signupController = async (req: Request, res: Response) => {
   try {
@@ -109,4 +115,53 @@ const verifyOtpController = async (req: Request, res: Response) => {
   }
 };
 
-export { signupController, verifyOtpController };
+const loginController = async (req: AuthRequest, res: Response) => {
+  try {
+    // 1. Accept and validate user input
+    const loginData = req.body as loginInputDTO;
+
+    if (!loginData) {
+      return res.status(400).json({
+        success: false,
+        message: "Login data is required",
+        error: {
+          code: "NO_DATA_PROVIDED",
+          details: "No login data provided in the request body",
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    // 2. Pass the data to the service layer for processing
+    const result = await loginAuthService(loginData);
+
+    // 3. Handle success and error responses
+    if (!result.success) {
+      switch (result.error?.code) {
+        case "USER_FETCH_ERROR":
+        case "USER_NOT_FOUND":
+          return res.status(404).json(result);
+        case "USER_SUSPENDED":
+          return res.status(403).json(result);
+        case "PHONE_UNVERIFIED":
+          return res.status(409).json(result);
+        case "ACCOUNT_LOCKED":
+        case "OTP_COOLDOWN":
+        case "LIMIT_EXCEEDED":
+          return res.status(429).json(result);
+        case "INTERNAL_ERROR":
+          return res.status(500).json(result);
+        default:
+          return res.status(400).json(result);
+      }
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    resServerError(res, error);
+  }
+};
+
+export { signupController, verifyOtpController, loginController };

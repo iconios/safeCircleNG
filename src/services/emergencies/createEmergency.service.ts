@@ -15,10 +15,10 @@ import {
   emergencyInsert,
   emergencyInsertSchema,
   emergencyRow,
-} from "../../types/emergency.types.ts";
-import validateUser from "../../utils/validateUser.util.ts";
-import { supabaseAdmin } from "../../config/supabase.ts";
-import { isDev } from "../../utils/devEnv.util.ts";
+} from "../../types/emergency.types";
+import validateUser from "../../utils/validateUser.util";
+import { supabaseAdmin } from "../../config/supabase";
+import { isDev } from "../../utils/devEnv.util";
 
 const createEmergencyService = async (
   emergencyInput: emergencyInputDTO,
@@ -175,7 +175,7 @@ const createEmergencyService = async (
       },
     };
   } catch (error) {
-    console.error("Error creating emergency", error);
+    console.error("createEmergencyService error:", error);
 
     if (error instanceof ZodError) {
       return {

@@ -1,17 +1,12 @@
 import axios from "axios";
-import { supabaseAdmin } from "../config/supabase.ts";
-import process from "node:process";
+import { isDev } from "./devEnv.util";
 
 const TERMII_API_KEY = process.env.TERMII_API_KEY;
 const senderID = process.env.SMS_SENDER_ID;
 const TERMII_BASE_URL = process.env.TERMII_BASE_URL;
 
-const SendSMSUtil = async (
-  phoneNumber: string,
-  OTP: string,
-  userId: string,
-  name?: string,
-) => {
+const SendSMSUtil = async (phoneNumber: string, message: string) => {
+  const now = new Date();
   if (!TERMII_API_KEY || !TERMII_BASE_URL || !senderID) {
     throw new Error("SMS provider configuration missing");
   }
@@ -20,14 +15,14 @@ const SendSMSUtil = async (
   const data = {
     to: phoneNumber,
     from: senderID,
-    sms: `Hi ${name ?? "new user"}, here's your OTP: ${OTP}`,
+    sms: message,
     type: "plain",
-    channel: "dnd",
+    channel: "generic",
     api_key: TERMII_API_KEY,
   };
 
   try {
-    await axios.post(url, data, {
+    const response = await axios.post(url, data, {
       headers: {
         "Content-Type": "application/json",
       },
@@ -36,27 +31,30 @@ const SendSMSUtil = async (
       phoneNumber,
       provider: "termii",
     });
+    return {
+      success: true,
+      message: `SMS sent successfully to ${phoneNumber}`,
+      data: response.status, // Matches an expected delivery_status for message logs
+      error: null,
+      metadata: {
+        timestamp: now.toISOString(),
+      },
+    };
   } catch (error) {
-    console.error("Error sending SMS", error);
-    await supabaseAdmin
-      .from("users")
-      .update({
-        verification_code: null,
-        verification_expires_at: null,
-      })
-      .eq("id", userId);
+    if (isDev) {
+      console.error("sendSMSUtil error:", error);
+    }
 
     return {
       success: false,
-      message: "Failed to send OTP. Please try again",
-      data: {},
+      message: `Error sending sms to ${phoneNumber}`,
+      data: null,
       error: {
-        code: "SMS_FAILED",
-        details: "Error sending SMS",
+        code: "OTP_SENDING_FAILED",
+        details: "failed", // Matches an expected delivery_status for message logs
       },
       metadata: {
-        timestamp: new Date().toISOString(),
-        phoneNumber,
+        timestamp: now.toISOString(),
       },
     };
   }

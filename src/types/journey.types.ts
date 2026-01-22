@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { timestamp } from "./emergency.types.ts";
 
 export const journeyTypeEnum = z.enum(["personal", "corporate", "event"]);
 export const journeyStatusEnum = z.enum([
@@ -47,7 +46,7 @@ export const JourneyRowSchema = z.object({
   estimated_arrival_at: z.iso.datetime().nullable(),
   check_in_deadline: z.iso.datetime().nullable(),
   completed_at: z.iso.datetime().nullable(),
-  terminated_at: timestamp.nullable(),
+  terminated_at: z.iso.datetime().nullable(),
   termination_reason: z.string(),
   actual_duration_minutes: z.number().int().min(0).default(0),
   share_with_circle: z.boolean().default(false),

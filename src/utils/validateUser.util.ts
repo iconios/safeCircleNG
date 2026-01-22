@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "../config/supabase.ts";
+import { supabaseAdmin } from "../config/supabase";
 
 const validateUser = async (
   userId: string,
@@ -10,7 +10,7 @@ const validateUser = async (
       return {
         success: false,
         message: "User Id required",
-        data: {},
+        data: null,
         error: {
           code: "USER_ID_REQUIRED",
           details: "User Id is required",
@@ -32,7 +32,7 @@ const validateUser = async (
       return {
         success: false,
         message: "Error while confirming user",
-        data: {},
+        data: null,
         error: {
           code: "USER_CONFIRMATION_ERROR",
           details: "Error while confirming user",
@@ -48,9 +48,9 @@ const validateUser = async (
       return {
         success: false,
         message: "User not found",
-        data: {},
+        data: null,
         error: {
-          code: "NOT_FOUND",
+          code: "USER_NOT_FOUND",
           details: "User not found",
         },
         metadata: {
@@ -76,7 +76,7 @@ const validateUser = async (
     return {
       success: false,
       message: "Internal server error",
-      data: {},
+      data: null,
       error: {
         code: "INTERNAL_ERROR",
         details: "Unexpected error during user validation",
