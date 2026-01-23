@@ -22,8 +22,12 @@ import { webLinkToken } from "../../types/webLink.types";
 import { isDev } from "../../utils/devEnv.util";
 import createWebLinkAccessService from "../webLinkAccess/createLink.service";
 import SendSMSUtil from "../../utils/sendSMS.util";
-import { smsResponseData } from "../../types/messageLogs.types";
+import {
+  channelTypeEnum,
+  smsResponseData,
+} from "../../types/messageLogs.types";
 import messageConstructor from "../../utils/messageConstructor";
+import createMessageLogService from "../messageLogs/createLog.service";
 
 const alertCircleMembersService = async (
   alertCircleInput: alertCircleInput,
@@ -98,6 +102,9 @@ const alertCircleMembersService = async (
         },
         metadata: {
           timestamp: now.toISOString(),
+          user_id,
+          journey_id,
+          emergency_id,
         },
       };
     }
@@ -113,6 +120,9 @@ const alertCircleMembersService = async (
         },
         metadata: {
           timestamp: now.toISOString(),
+          user_id,
+          journey_id,
+          emergency_id,
         },
       };
     }
@@ -242,41 +252,44 @@ const alertCircleMembersService = async (
         userData.first_name,
       );
       const response = await SendSMSUtil(member.contact_phone, message);
-      if (response.error) {
+      if (!response.success) {
         smsError.push({
           contactName: member.contact_name,
           contactPhone: member.contact_phone,
         });
       }
       smsLogs.push({
-        message_text: message,
-        web_link_token: token,
-        journey_id,
-        emergency_id,
         to_number: member.contact_phone,
         to_name: member.contact_name,
+        delivery_status: response.success ? "sent" : "failed",
         web_link,
-        channel_type: "sms",
-        message_type: validatedMessageType,
-        delivery_status: response.error ? "failed" : "sent",
+        web_link_token: token,
+        message_text: message,
       });
     }
 
     // 5. Log the SMS sent
-    if (smsLogs.length > 0) {
-      const { error: logError } = await supabaseAdmin
-        .from("message_logs")
-        .insert(smsLogs);
-      if (logError) {
-        console.error("Error logging sms", logError.message);
+    const smsLogPayload = smsLogs.map((log) => ({
+      message_text: log.message_text,
+      web_link_token: log.web_link_token,
+      to_number: log.to_number,
+      to_name: log.to_name,
+      delivery_status: log.delivery_status,
+      message_type: validatedMessageType,
+      journey_id,
+      emergency_id,
+      channel_type: channelTypeEnum.enum.sms,
+      web_link: log.web_link,
+    }));
+    try {
+      if (smsLogPayload.length > 0) {
+        await createMessageLogService(userData.id, smsLogPayload);
+      }
+    } catch (error) {
+      if (isDev) {
+        console.error("createMessageLogService error:", error);
       }
     }
-
-    const responseData = smsLogs.map((item) => ({
-      contactName: item.to_name,
-      contactPhone: item.to_number,
-      delivery_status: item.delivery_status,
-    }));
 
     const returnMessage = () => {
       if (smsError.length === 0) {
@@ -288,15 +301,20 @@ const alertCircleMembersService = async (
     return {
       success: smsError.length === 0,
       message: returnMessage(),
-      data: responseData,
+      data: smsLogs.map(({ to_name, to_number, delivery_status }) => ({
+        to_name,
+        to_number,
+        delivery_status,
+      })),
       error: null,
       metadata: {
         timestamp: now.toISOString(),
         user_id,
         journey_id,
         emergency_id,
-        sent: circleData.length - smsError.length,
-        total: responseData.length,
+        sentCount: circleMembersCount - smsError.length,
+        totalCount: circleMembersCount,
+        failed: smsError,
       },
     };
   } catch (error) {

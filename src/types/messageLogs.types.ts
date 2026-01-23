@@ -49,19 +49,22 @@ export const messageLogsRowSchema = z
   })
   .strict();
 
-export const messageLogsInsertSchema = messageLogsRowSchema
-  .pick({
-    journey_id: true,
-    emergency_id: true,
-    to_number: true,
-    to_name: true,
-    channel_type: true,
-    message_type: true,
-    message_text: true,
-    web_link: true,
-    web_link_token: true,
-  })
-  .strict();
+export const messageLogsInsertArraySchema = z.array(
+  messageLogsRowSchema
+    .pick({
+      journey_id: true,
+      emergency_id: true,
+      to_number: true,
+      to_name: true,
+      channel_type: true,
+      message_type: true,
+      message_text: true,
+      web_link: true,
+      web_link_token: true,
+      delivery_status: true,
+    })
+    .strict(),
+);
 
 export const messageLogsUpdateSchema = messageLogsRowSchema.omit({
   created_at: true,
@@ -70,20 +73,18 @@ export const messageLogsUpdateSchema = messageLogsRowSchema.omit({
 });
 
 export type messageLogsRow = z.infer<typeof messageLogsRowSchema>;
-export type messageLogsInsert = z.infer<typeof messageLogsInsertSchema>;
+export type messageLogsArrayInsert = z.infer<
+  typeof messageLogsInsertArraySchema
+>;
 export type messageLogsUpdate = z.infer<typeof messageLogsUpdateSchema>;
 
 export const smsResponseDataSchema = z.object({
-  message_text: z.string(),
-  web_link_token: z.string(),
-  journey_id: z.string(),
-  emergency_id: z.string().nullable(),
   to_number: z.string(),
   to_name: z.string(),
-  web_link: z.string(),
-  channel_type: channelTypeEnum,
-  message_type: messageTypeEnum,
   delivery_status: deliveryStatusEnum,
+  web_link: z.string(),
+  web_link_token: z.string(),
+  message_text: z.string(),
 });
 
 export type smsResponseData = z.infer<typeof smsResponseDataSchema>;

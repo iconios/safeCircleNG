@@ -44,6 +44,8 @@ export const UserRowSchema = z.object({
   otp_requests_today: z.number().int().default(0),
   otp_hour_window_started_at: timestamp.nullable(),
   otp_day_window_started_at: timestamp.nullable(),
+  organization_id: z.string().nullable(),
+  event_id: z.string().nullable(),
 });
 
 export const UserInsertSchema = UserRowSchema.pick({

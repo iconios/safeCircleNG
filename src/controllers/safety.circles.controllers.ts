@@ -250,11 +250,14 @@ const alertCircleMembersController = async (
       });
     }
     // 2. Pass the data to the service layer for processing
-    const result = await alertCircleMembersService({
-      user_id,
-      journey_id,
-      emergency_id,
-    }, message_type);
+    const result = await alertCircleMembersService(
+      {
+        user_id,
+        journey_id,
+        emergency_id,
+      },
+      message_type,
+    );
 
     // 3. Handle success and error responses
     if (!result.success) {

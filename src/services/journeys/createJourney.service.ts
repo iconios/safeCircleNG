@@ -4,7 +4,7 @@
 1. Accept and validate userId
 2. Accept and validate journey data
 3. Create journey
-4. Notify circle members
+4. Notify circle members is share_with_circle = true
     - Fetch the circle members
     - Send SMS with unique link to each circle member
 5. Send response to user

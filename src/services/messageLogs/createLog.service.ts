@@ -1,109 +1,52 @@
 // Create message log service
+// This is an internal service — user validation is expected to be handled by the caller
 /*
 #Plan:
-1. Accept and validate user id
-2. Accept and validate message log data
-3. Create message log
-4. Send response to the user
+1. Accept and validate message log data
+2. Create message log
+3. Send response to the user
 */
 
-import { ZodError } from "zod";
 import {
-  messageLogsInsert,
-  messageLogsInsertSchema,
+  messageLogsArrayInsert,
+  messageLogsInsertArraySchema,
 } from "../../types/messageLogs.types";
-import validateUser from "../../utils/validateUser.util";
 import { supabaseAdmin } from "../../config/supabase";
 import { isDev } from "../../utils/devEnv.util";
 
 const createMessageLogService = async (
   userId: string,
-  logData: messageLogsInsert,
-) => {
-  const now = new Date();
+  logData: messageLogsArrayInsert,
+): Promise<{ success: true; count: number } | void> => {
   try {
-    // 1. Accept and validate the user Id
-    const userValidation = await validateUser(userId, now);
-    if (!userValidation.success) {
-      return userValidation;
+    if (!userId) {
+      if (isDev) console.error("createMessageLogService: missing userId");
+      return;
     }
 
-    // 2. Accept and validate message log data
-    const validatedInput = messageLogsInsertSchema.parse(logData);
+    // 1. Accept and validate message log data
+    const validatedInput = messageLogsInsertArraySchema.parse(logData);
 
-    // 3. Create message log
-    const { data, error } = await supabaseAdmin
-      .from("message_logs")
-      .insert({
-        user_id: userId,
-        ...validatedInput,
-      })
-      .select()
-      .single();
+    // 2. Create message log
+    const payload = validatedInput.map((item) => ({
+      user_id: userId,
+      ...item,
+    }));
+    const { error } = await supabaseAdmin.from("message_logs").insert(payload);
 
     if (error) {
-      return {
-        success: false,
-        message: "Error creating message log",
-        data: null,
-        error: {
-          code: "MESSAGE_LOG_CREATION_ERROR",
-          details: isDev
-            ? (error?.message ?? "Error creating message log")
-            : "Error creating message log",
-        },
-        metadata: {
-          timestamp: now.toISOString(),
-          user_id: userId,
-        },
-      };
+      if (isDev) console.error("Message log insert failed", error);
+      return;
     }
 
-    // 4. Send response to the user
+    // 3. Send response to the user
     return {
       success: true,
-      message: "Message log created successfully",
-      data,
-      error: null,
-      metadata: {
-        timestamp: now.toISOString(),
-        user_id: userId,
-      },
+      count: payload.length,
     };
   } catch (error) {
-    console.error("createMessageLogService error:", error);
-
-    if (error instanceof ZodError) {
-      return {
-        success: false,
-        message: "Message log data validation error",
-        data: null,
-        error: {
-          code: "VALIDATION_ERROR",
-          details: isDev
-            ? (error?.message ?? "Message log data validation error")
-            : "Message log data validation error",
-        },
-        metadata: {
-          timestamp: now.toISOString(),
-          user_id: userId,
-        },
-      };
-    }
-
-    return {
-      success: false,
-      message: "Internal server error",
-      data: null,
-      error: {
-        code: "INTERNAL_ERROR",
-        details: "Unexpected error while creating message log",
-      },
-      metadata: {
-        timestamp: now.toISOString(),
-        user_id: userId,
-      },
-    };
+    if (isDev) console.error("createMessageLogService error:", error);
+    return;
   }
 };
 
