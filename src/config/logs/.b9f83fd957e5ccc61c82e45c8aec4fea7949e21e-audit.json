@@ -1,0 +1,15 @@
+{
+  "keep": {
+    "days": true,
+    "amount": 14
+  },
+  "auditLog": "C:\\Users\\hp\\Documents\\Portfolio SafeCircle NG\\SafeCircleNG\\backend\\src\\config\\logs\\.b9f83fd957e5ccc61c82e45c8aec4fea7949e21e-audit.json",
+  "files": [
+    {
+      "date": 1769239719118,
+      "name": "C:\\Users\\hp\\Documents\\Portfolio SafeCircle NG\\SafeCircleNG\\backend\\src\\config\\logs\\combined-2026-01-24.log",
+      "hash": "286ca5cb010df8110e386b6f3108e5b7a2c31183397c507650526eaa6f690b43"
+    }
+  ],
+  "hashType": "sha256"
+}

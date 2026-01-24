@@ -6,10 +6,15 @@
 3. Send response to user
 */
 
-import { supabaseAdmin } from "../../config/supabase.ts";
-import { SafetyCircleRow } from "../../types/safetyCircle.types.ts";
-import { isDev } from "../../utils/devEnv.util.ts";
-import validateUser from "../../utils/validateUser.util.ts";
+import logger from "../../config/logger";
+import { supabaseAdmin } from "../../config/supabase";
+import { SafetyCircleRow } from "../../types/safetyCircle.types";
+import { isDev } from "../../utils/devEnv.util";
+import validateUser from "../../utils/validateUser.util";
+
+const safetyCircle = logger.child({
+  service: "readCircleMemberService",
+});
 
 const readCircleMemberService = async (userId: string) => {
   const now = new Date(Date.now());
@@ -17,6 +22,9 @@ const readCircleMemberService = async (userId: string) => {
     // 1. Accept and validate the user Id
     const userValidation = await validateUser(userId, now);
     if (!userValidation.success) {
+      safetyCircle.info("User validation failed", {
+        userId,
+      });
       return userValidation;
     }
 
@@ -27,6 +35,11 @@ const readCircleMemberService = async (userId: string) => {
       .eq("user_id", userId);
 
     if (error) {
+      safetyCircle.error("Error fetching circle members", {
+        userId,
+        reason: "FETCH_ERROR",
+        error,
+      });
       return {
         success: false,
         message: "Error fetching circle members",
@@ -44,6 +57,10 @@ const readCircleMemberService = async (userId: string) => {
 
     const circleData: SafetyCircleRow[] = data;
     if (!circleData || circleData.length === 0) {
+      safetyCircle.info("No circle members found", {
+        userId,
+        reason: "NOT_FOUND",
+      });
       return {
         success: false,
         message: "No circle members found",
@@ -71,7 +88,11 @@ const readCircleMemberService = async (userId: string) => {
       },
     };
   } catch (error) {
-    console.error("Error fetching circle members", error);
+    safetyCircle.error("Internal server error", {
+      userId,
+      reason: "INTERNAL_ERROR",
+      error,
+    });
 
     return {
       success: false,

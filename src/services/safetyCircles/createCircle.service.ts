@@ -19,6 +19,11 @@ import {
 } from "../../types/safetyCircle.types";
 import validateUser from "../../utils/validateUser.util";
 import { isDev } from "../../utils/devEnv.util";
+import logger from "../../config/logger";
+
+const safetyCircle = logger.child({
+  service: "createCircleMemberService",
+});
 
 const createCircleMemberService = async (
   userId: string,
@@ -29,6 +34,9 @@ const createCircleMemberService = async (
     // 1. Accept and validate the user Id
     const userValidation = await validateUser(userId, now);
     if (!userValidation.success) {
+      safetyCircle.info("User validation failed", {
+        userId,
+      });
       return userValidation;
     }
 
@@ -49,6 +57,11 @@ const createCircleMemberService = async (
       .single();
 
     if (circleError) {
+      safetyCircle.error("Error creating circle member", {
+        userId,
+        reason: "CIRCLE_MEMBER_CREATION_ERROR",
+        error: circleError,
+      });
       return {
         success: false,
         message: "Error creating circle member",
@@ -82,9 +95,14 @@ const createCircleMemberService = async (
       },
     };
   } catch (error) {
-    console.error("createCircleMemberService error:", error);
+    safetyCircle.error("createCircleMemberService error:", error);
 
     if (error instanceof ZodError) {
+      safetyCircle.error("Error creating circle member", {
+        userId,
+        reason: "CIRCLE_MEMBER_CREATION_ERROR",
+        error,
+      });
       return {
         success: false,
         message: "Error validating circle data",
@@ -100,6 +118,11 @@ const createCircleMemberService = async (
       };
     }
 
+    safetyCircle.error("Internal server error", {
+      userId,
+      reason: "INTERNAL_ERROR",
+      error,
+    });
     return {
       success: false,
       message: "Internal server error",

@@ -9,14 +9,19 @@
 */
 
 import { ZodError } from "zod";
-import { supabaseAdmin } from "../../config/supabase.ts";
+import { supabaseAdmin } from "../../config/supabase";
 import {
   SafetyCircleUpdate,
   SafetyCircleUpdateSchema,
-} from "../../types/safetyCircle.types.ts";
-import validateCircle from "../../utils/validateCircle.util.ts";
-import validateUser from "../../utils/validateUser.util.ts";
-import { isDev } from "../../utils/devEnv.util.ts";
+} from "../../types/safetyCircle.types";
+import validateCircle from "../../utils/validateCircle.util";
+import validateUser from "../../utils/validateUser.util";
+import { isDev } from "../../utils/devEnv.util";
+import logger from "../../config/logger";
+
+const safetyCircle = logger.child({
+  service: "updateCircleMemberService",
+});
 
 const updateCircleMemberService = async (
   userId: string,
@@ -28,17 +33,29 @@ const updateCircleMemberService = async (
     // 1. Accept and validate the user Id
     const userValidation = await validateUser(userId, now);
     if (!userValidation.success) {
+      safetyCircle.info("User Id validation failed", {
+        userId,
+      });
       return userValidation;
     }
 
     // 2. Accept and validate circle member Id
     const circleValidation = await validateCircle(circleId, userId, now);
     if (!circleValidation.success) {
+      safetyCircle.info("Circle Id validation failed", {
+        userId,
+        circleId,
+      });
       return circleValidation;
     }
 
     // 3. Accept and validate update data
     if (!updateCircleData || Object.keys(updateCircleData).length === 0) {
+      safetyCircle.info("No update data provided", {
+        userId,
+        circleId,
+        reason: "EMPTY_UPDATE",
+      });
       return {
         success: false,
         message: "No update data provided",
@@ -68,6 +85,11 @@ const updateCircleMemberService = async (
       .maybeSingle();
 
     if (circleError) {
+      safetyCircle.info("Error while updating circle member", {
+        userId,
+        circleId,
+        reason: "CIRCLE_UPDATE_ERROR",
+      });
       return {
         success: false,
         message: "Error while updating circle member",
@@ -87,6 +109,11 @@ const updateCircleMemberService = async (
     }
 
     if (!circleData) {
+      safetyCircle.info("Circle member not found or not updated", {
+        userId,
+        circleId,
+        reason: "CIRCLE_NOT_FOUND",
+      });
       return {
         success: false,
         message: "Circle member not found or not updated",
@@ -116,9 +143,13 @@ const updateCircleMemberService = async (
       },
     };
   } catch (error) {
-    console.error("Error updating circle member", error);
-
     if (error instanceof ZodError) {
+      safetyCircle.error("Update data validation error", {
+        userId,
+        circleId,
+        reason: "VALIDATION_ERROR",
+        error,
+      });
       return {
         success: false,
         message: "Update data validation error",
@@ -135,6 +166,12 @@ const updateCircleMemberService = async (
       };
     }
 
+    safetyCircle.error("Internal server error", {
+      userId,
+      circleId,
+      reason: "INTERNAL_ERROR",
+      error,
+    });
     return {
       success: false,
       message: "Internal server error",

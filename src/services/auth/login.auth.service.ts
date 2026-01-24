@@ -34,12 +34,21 @@ import {
   isHourWindowExpired,
 } from "../../utils/windowExpired.util";
 import createOtpService from "../otps/createOtp.service";
+import logger from "../../config/logger";
+import { maskPhone } from "../../utils/maskPhone.util";
+import { randomUUID } from "node:crypto";
+
+const auth = logger.child({
+  service: "loginAuthService",
+  requestId: randomUUID(),
+});
 
 const loginAuthService = async (loginInput: loginInputDTO) => {
   const now = new Date();
   try {
     // 1. Validate input (phone, device_id)
     const { phone_number } = loginInputDataSchema.parse(loginInput);
+    const maskedPhone = maskPhone(phone_number);
 
     // 2. Fetch user by phone
     const { data: userData, error: userError } = await supabaseAdmin
@@ -50,6 +59,10 @@ const loginAuthService = async (loginInput: loginInputDTO) => {
       .eq("phone_number", phone_number)
       .maybeSingle();
     if (userError) {
+      auth.info("Error fetching user", {
+        phone: maskedPhone,
+        reason: "USER_FETCH_ERROR",
+      });
       return {
         success: false,
         message: "Error fetching user",
@@ -69,6 +82,10 @@ const loginAuthService = async (loginInput: loginInputDTO) => {
 
     //     a. If NOT found → reject ("Account not found. Please sign up")
     if (!userData) {
+      auth.info("If an account exists for this number, a code will be sent", {
+        phone: maskedPhone,
+        reason: "USER_NOT_FOUND",
+      });
       return {
         success: false,
         message: "If an account exists for this number, a code will be sent",
@@ -86,6 +103,10 @@ const loginAuthService = async (loginInput: loginInputDTO) => {
 
     //    b. If status = suspended → reject
     if (userData.status === "suspended") {
+      auth.warn("User suspended", {
+        phone: maskedPhone,
+        reason: "USER_SUSPENDED",
+      });
       return {
         success: false,
         message: "User suspended. Contact support",
@@ -103,6 +124,10 @@ const loginAuthService = async (loginInput: loginInputDTO) => {
 
     //    c. If phone_verified = false → reject ("Verify phone first")
     if (!userData.phone_verified) {
+      auth.info("Please verify phone number first", {
+        phone: maskedPhone,
+        reason: "PHONE_UNVERIFIED",
+      });
       return {
         success: false,
         message: "Please verify phone number first",
@@ -126,6 +151,10 @@ const loginAuthService = async (loginInput: loginInputDTO) => {
       const remainingMs =
         new Date(userData.otp_locked_until).getTime() - Date.now();
       const remainingMinutes = Math.ceil(remainingMs / 60000);
+      auth.info(`Try again in ${remainingMinutes} minutes`, {
+        phone: maskedPhone,
+        reason: "ACCOUNT_LOCKED",
+      });
       return {
         success: false,
         message: `Try again in ${remainingMinutes} minutes`,
@@ -148,6 +177,10 @@ const loginAuthService = async (loginInput: loginInputDTO) => {
       const isInCooldown = diffMs < OTP_COOLDOWN_MS;
       if (isInCooldown) {
         const remainingSeconds = Math.ceil((OTP_COOLDOWN_MS - diffMs) / 1000);
+        auth.info(`Wait ${remainingSeconds} seconds to request new OTP`, {
+          phone: maskedPhone,
+          reason: "OTP_COOLDOWN",
+        });
         return {
           success: false,
           message: `Wait ${remainingSeconds} seconds to request new OTP`,
@@ -186,6 +219,10 @@ const loginAuthService = async (loginInput: loginInputDTO) => {
     // 6. Enforce limits:
     //    a. otp_requests_last_hour >= 5 → reject
     if (effectiveHourlyCount >= 5) {
+      auth.warn(`Too many requests. Try again later`, {
+        phone: maskedPhone,
+        reason: "LIMIT_EXCEEDED",
+      });
       return {
         success: false,
         message: "Too many requests. Try again later",
@@ -202,6 +239,10 @@ const loginAuthService = async (loginInput: loginInputDTO) => {
     }
     //    b. otp_requests_today >= 15 → reject
     if (effectiveDailyCount >= 15) {
+      auth.warn(`Daily limit exceeded`, {
+        phone: maskedPhone,
+        reason: "LIMIT_EXCEEDED",
+      });
       return {
         success: false,
         message: "Daily limit exceeded. Try again later",
@@ -229,10 +270,14 @@ const loginAuthService = async (loginInput: loginInputDTO) => {
     return await createOtpService(phone_number, "login", userData.id);
   } catch (error) {
     if (isDev) {
-      console.error("loginAuthService error:", error);
+      auth.error("loginAuthService error:", error);
     }
 
     if (error instanceof ZodError) {
+      auth.error(`Login data validation failed`, {
+        reason: "VALIDATION_ERROR",
+        error,
+      });
       return {
         success: false,
         message: error.message || "Login data validation failed",
@@ -247,6 +292,10 @@ const loginAuthService = async (loginInput: loginInputDTO) => {
       };
     }
 
+    auth.info("Unexpected error while logining in user", {
+      reason: "INTERNAL_ERROR",
+      error,
+    });
     return {
       success: false,
       message: "Unexpected error while logining in user",

@@ -46,12 +46,21 @@ import {
   isDayWindowExpired,
   isHourWindowExpired,
 } from "../../utils/windowExpired.util";
+import logger from "../../config/logger";
+import { maskPhone } from "../../utils/maskPhone.util";
+import { randomUUID } from "node:crypto";
+
+const auth = logger.child({
+  service: "signUpAuthService",
+  requestId: randomUUID(),
+});
 
 const signUpAuthService = async (signUpData: SignUpDataDTO) => {
   const now: Date = new Date(Date.now());
   try {
     // 1. Validate input (phone, device_id)
     const { phone_number, device_id } = SignUpDataDTOSchema.parse(signUpData);
+    const maskedPhone = maskPhone(phone_number);
 
     // 2. Fetch user by phone
     const { data: existingUser, error: fetchError } = await supabaseAdmin
@@ -63,6 +72,10 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
       .maybeSingle();
 
     if (fetchError) {
+      auth.info("Unable to process request", {
+        phone: maskedPhone,
+        reason: "USER_FETCH_ERROR",
+      });
       return {
         success: false,
         message: "Unable to process request",
@@ -73,6 +86,7 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
         },
         metadata: {
           timestamp: now.toISOString(),
+          phoneNumber: maskedPhone,
         },
       };
     }
@@ -80,6 +94,10 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
     // a. If exists AND status = suspended
     //      → reject
     if (existingUser?.status === "suspended") {
+      auth.warn("Account suspended", {
+        phone: maskedPhone,
+        reason: "USER_SUSPENDED",
+      });
       return {
         success: false,
         message: "Account suspended. Contact support",
@@ -90,7 +108,7 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
         },
         metadata: {
           timestamp: now.toISOString(),
-          phoneNumber: phone_number,
+          phoneNumber: maskedPhone,
         },
       };
     }
@@ -98,6 +116,10 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
     //  b. If exists AND phone_verified = true
     //     → reject ("User already exists. Please log in")
     if (existingUser?.phone_verified) {
+      auth.info("User already exists", {
+        phone: maskedPhone,
+        reason: "USER_EXISTS",
+      });
       return {
         success: false,
         message: "User already exists. Please log in",
@@ -108,7 +130,7 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
         },
         metadata: {
           timestamp: now.toISOString(),
-          phoneNumber: phone_number,
+          phoneNumber: maskedPhone,
         },
       };
     }
@@ -123,6 +145,10 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
         const remainingMs =
           new Date(existingUser.otp_locked_until).getTime() - Date.now();
         const remainingMinutes = Math.ceil(remainingMs / 60000);
+        auth.warn(`Try again in ${remainingMinutes} minutes`, {
+          phone: maskedPhone,
+          reason: "ACCOUNT_LOCKED",
+        });
         return {
           success: false,
           message: `Try again in ${remainingMinutes} minutes`,
@@ -133,7 +159,7 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
           },
           metadata: {
             timestamp: now.toISOString(),
-            phoneNumber: phone_number,
+            phoneNumber: maskedPhone,
           },
         };
       }
@@ -145,6 +171,10 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
         const isInCooldown = diffMs < OTP_COOLDOWN_MS;
         if (isInCooldown) {
           const remainingSeconds = Math.ceil((OTP_COOLDOWN_MS - diffMs) / 1000);
+          auth.warn(`Wait ${remainingSeconds} seconds to request new OTP`, {
+            phone: maskedPhone,
+            reason: "OTP_COOLDOWN",
+          });
           return {
             success: false,
             message: `Wait ${remainingSeconds} seconds to request new OTP`,
@@ -155,7 +185,7 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
             },
             metadata: {
               timestamp: now.toISOString(),
-              phoneNumber: phone_number,
+              phoneNumber: maskedPhone,
             },
           };
         }
@@ -182,6 +212,11 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
       //     - otp_requests_last_hour >= 3 → reject
       //     - otp_requests_today >= 10 → reject
       if (effectiveHourlyCount >= 3) {
+        auth.warn("Too many requests. Try again later", {
+          phone: maskedPhone,
+          reason: "LIMIT_EXCEEDED",
+          window: "Hour",
+        });
         return {
           success: false,
           message: "Too many requests. Try again later",
@@ -192,12 +227,17 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
           },
           metadata: {
             timestamp: now.toISOString(),
-            phoneNumber: phone_number,
+            phoneNumber: maskedPhone,
           },
         };
       }
 
       if (effectiveDailyCount >= 10) {
+        auth.warn("Daily limit exceeded. Try again later", {
+          phone: maskedPhone,
+          reason: "LIMIT_EXCEEDED",
+          window: "Daily",
+        });
         return {
           success: false,
           message: "Daily limit exceeded. Try again later",
@@ -208,7 +248,7 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
           },
           metadata: {
             timestamp: now.toISOString(),
-            phoneNumber: phone_number,
+            phoneNumber: maskedPhone,
           },
         };
       }
@@ -253,6 +293,10 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
       .single();
 
     if (userError) {
+      auth.info("Error creating user. Try again", {
+        phone: maskedPhone,
+        reason: "CREATE_USER_ERROR",
+      });
       return {
         success: false,
         message: "Error creating user. Try again",
@@ -265,7 +309,7 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
         },
         metadata: {
           timestamp: now.toISOString(),
-          phoneNumber: phone_number,
+          phoneNumber: maskedPhone,
         },
       };
     }
@@ -282,9 +326,13 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
     //  - window timestamps
     return await createOtpService(phone_number, "signup", userData.id);
   } catch (error) {
-    console.error("signUpAuthService error:", error);
+    auth.error("signUpAuthService error:", error);
 
     if (error instanceof ZodError) {
+      auth.error("Signup data validation failed", {
+        reason: "VALIDATION_ERROR",
+        error,
+      });
       return {
         success: false,
         message: error.message || "Signup data validation failed",
@@ -299,13 +347,17 @@ const signUpAuthService = async (signUpData: SignUpDataDTO) => {
       };
     }
 
+    auth.error("Unexpected error while signing up user", {
+      reason: "INTERNAL_ERROR",
+      error,
+    });
     return {
       success: false,
-      message: "Sign up error",
+      message: "Unexpected error while signing up user",
       data: null,
       error: {
-        code: "SIGNUP_ERROR",
-        details: "Error signing up user",
+        code: "INTERNAL_ERROR",
+        details: "Unexpected error while signing up user",
       },
       metadata: {
         timestamp: now.toISOString(),

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PhoneNumberSchema } from "./user.types";
+import { timestamp } from "./emergency.types";
 
 export const SafetyCircleRowSchema = z.object({
   id: z.uuid(),
@@ -16,7 +17,7 @@ export const SafetyCircleRowSchema = z.object({
   receive_email: z.boolean().default(false).nullable(),
   created_at: z.iso.datetime().nullable(),
   updated_at: z.iso.datetime().nullable(),
-  total_alerts_received: z.number().int().min(0).default(0).nullable(),
+  total_alerts_received: z.number().int().min(0).default(0),
 });
 
 export const SafetyCircleInsertSchema = SafetyCircleRowSchema.pick({
@@ -84,6 +85,7 @@ export const alertSMSResponseSchema = z
   .object({
     contactName: z.string(),
     contactPhone: z.string(),
+    circleMemberId: z.uuid(),
   })
   .strict();
 
