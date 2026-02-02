@@ -18,9 +18,11 @@ import validateCircle from "../../utils/validateCircle.util";
 import validateUser from "../../utils/validateUser.util";
 import { isDev } from "../../utils/devEnv.util";
 import logger from "../../config/logger";
+import { randomUUID } from "node:crypto";
 
 const safetyCircle = logger.child({
   service: "updateCircleMemberService",
+  requestId: randomUUID(),
 });
 
 const updateCircleMemberService = async (

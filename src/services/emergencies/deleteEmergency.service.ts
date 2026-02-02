@@ -8,13 +8,20 @@
 */
 
 import { ZodError } from "zod";
-import { supabaseAdmin } from "../../config/supabase.ts";
+import { supabaseAdmin } from "../../config/supabase";
 import {
   deleteEmergencyDTO,
   deleteEmergencySchema,
-} from "../../types/emergency.types.ts";
-import validateUser from "../../utils/validateUser.util.ts";
-import { isDev } from "../../utils/devEnv.util.ts";
+} from "../../types/emergency.types";
+import validateUser from "../../utils/validateUser.util";
+import { isDev } from "../../utils/devEnv.util";
+import logger from "../../config/logger";
+import { randomUUID } from "node:crypto";
+
+const emergencyLog = logger.child({
+  service: "deleteEmergencyService",
+  requestId: randomUUID(),
+});
 
 const deleteEmergencyService = async (
   emergencyInputData: deleteEmergencyDTO,
@@ -26,6 +33,10 @@ const deleteEmergencyService = async (
       deleteEmergencySchema.parse(emergencyInputData);
     const userValidation = await validateUser(user_id, now);
     if (!userValidation.success) {
+      emergencyLog.info("User validation failed", {
+        userId: user_id,
+        emergencyId: emergency_id,
+      });
       return userValidation;
     }
 
@@ -38,6 +49,11 @@ const deleteEmergencyService = async (
       .maybeSingle();
 
     if (emergencyError) {
+      emergencyLog.error("Error while confirming emergency", {
+        userId: user_id,
+        emergencyId: emergency_id,
+        error: emergencyError,
+      });
       return {
         success: false,
         message: "Error while confirming emergency",
@@ -80,6 +96,11 @@ const deleteEmergencyService = async (
       .eq("id", emergency_id)
       .eq("user_id", user_id);
     if (error) {
+      emergencyLog.error("Error deleting emergency", {
+        userId: user_id,
+        emergencyId: emergency_id,
+        error,
+      });
       return {
         success: false,
         message: "Error deleting emergency",
@@ -110,9 +131,10 @@ const deleteEmergencyService = async (
       },
     };
   } catch (error) {
-    console.error("deleteEmergencyService error:", error);
-
     if (error instanceof ZodError) {
+      emergencyLog.error("Emergency data validation error", {
+        error,
+      });
       return {
         success: false,
         message: "Emergency data validation error",
@@ -129,6 +151,9 @@ const deleteEmergencyService = async (
       };
     }
 
+    emergencyLog.error("Internal server error", {
+      error,
+    });
     return {
       success: false,
       message: "Internal server error",

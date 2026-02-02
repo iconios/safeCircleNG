@@ -19,6 +19,13 @@ import {
 import validateUser from "../../utils/validateUser.util";
 import { supabaseAdmin } from "../../config/supabase";
 import { isDev } from "../../utils/devEnv.util";
+import logger from "../../config/logger";
+import { randomUUID } from "node:crypto";
+
+const emergencyLog = logger.child({
+  service: "createEmergencyService",
+  requestId: randomUUID(),
+});
 
 const createEmergencyService = async (
   emergencyInput: emergencyInputDTO,
@@ -30,6 +37,10 @@ const createEmergencyService = async (
     const { user_id, journey_id } = emergencyInputSchema.parse(emergencyInput);
     const userValidation = await validateUser(user_id, now);
     if (!userValidation.success) {
+      emergencyLog.info("User validation failed", {
+        userId: user_id,
+        journeyId: journey_id,
+      });
       return userValidation;
     }
 
@@ -45,7 +56,7 @@ const createEmergencyService = async (
       return {
         success: false,
         message: "No active journey found",
-        data: {},
+        data: null,
         error: {
           code: "JOURNEY_NOT_ACTIVE",
           details: "Emergency cannot be created for inactive journey",
@@ -69,7 +80,7 @@ const createEmergencyService = async (
       return {
         success: false,
         message: "Active emergency already exists",
-        data: {},
+        data: null,
         error: {
           code: "ACTIVE_EMERGENCY_EXISTS",
           details: "A journey could only have one emergency",
@@ -95,6 +106,11 @@ const createEmergencyService = async (
       .single();
 
     if (error?.code === "23505") {
+      emergencyLog.error("Emergency already exists", {
+        userId: user_id,
+        journeyId: journey_id,
+        error,
+      });
       return {
         success: false,
         message: "Emergency already exists",
@@ -110,10 +126,15 @@ const createEmergencyService = async (
       };
     }
     if (error) {
+      emergencyLog.error("Error creating emergency", {
+        userId: user_id,
+        journeyId: journey_id,
+        error,
+      });
       return {
         success: false,
         message: "Error creating emergency",
-        data: {},
+        data: null,
         error: {
           code: "EMERGENCY_CREATION_ERROR",
           details: isDev
@@ -138,6 +159,11 @@ const createEmergencyService = async (
       .eq("journey_id", journey_id)
       .eq("user_id", user_id);
     if (terminationError) {
+      emergencyLog.error("Error terminating journey", {
+        userId: user_id,
+        journeyId: journey_id,
+        terminationError,
+      });
       await supabaseAdmin
         .from("emergencies")
         .delete()
@@ -146,7 +172,7 @@ const createEmergencyService = async (
       return {
         success: false,
         message: "Error terminating journey",
-        data: {},
+        data: null,
         error: {
           code: "JOURNEY_TERMINATION_ERROR",
           details: isDev
@@ -175,13 +201,14 @@ const createEmergencyService = async (
       },
     };
   } catch (error) {
-    console.error("createEmergencyService error:", error);
-
     if (error instanceof ZodError) {
+      emergencyLog.error("Emergency data validation error", {
+        error,
+      });
       return {
         success: false,
         message: "Emergency data validation error",
-        data: {},
+        data: null,
         error: {
           code: "VALIDATION_ERROR",
           details: isDev
@@ -194,10 +221,13 @@ const createEmergencyService = async (
       };
     }
 
+    emergencyLog.error("Internal server error", {
+      error,
+    });
     return {
       success: false,
       message: "Internal server error",
-      data: {},
+      data: null,
       error: {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while creating emergency",

@@ -8,14 +8,18 @@
 */
 
 import { ZodError } from "zod";
-import { supabaseAdmin } from "../../config/supabase.ts";
-import {
-  journeyInputDTO,
-  journeyInputSchema,
-} from "../../types/journey.types.ts";
-import validateJourney from "../../utils/validateJourney.util.ts";
-import validateUser from "../../utils/validateUser.util.ts";
-import { isDev } from "../../utils/devEnv.util.ts";
+import { supabaseAdmin } from "../../config/supabase";
+import { journeyInputDTO, journeyInputSchema } from "../../types/journey.types";
+import validateJourney from "../../utils/validateJourney.util";
+import validateUser from "../../utils/validateUser.util";
+import { isDev } from "../../utils/devEnv.util";
+import logger from "../../config/logger";
+import { randomUUID } from "node:crypto";
+
+const journey = logger.child({
+  service: "deleteJourneyService",
+  requestId: randomUUID(),
+});
 
 const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
   const now = new Date();
@@ -24,12 +28,19 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
     const { user_id, journey_id } = journeyInputSchema.parse(deleteJourneyData);
     const userValidation = await validateUser(user_id, now);
     if (!userValidation.success) {
+      journey.info("User validation failed", {
+        userId: user_id,
+      });
       return userValidation;
     }
 
     // 2. Accept and validate journey id
     const journeyValidation = await validateJourney(user_id, journey_id, now);
     if (!journeyValidation.success) {
+      journey.info("Journey validation failed", {
+        userId: user_id,
+        journeyId: journey_id,
+      });
       return journeyValidation;
     }
 
@@ -40,6 +51,12 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
       .eq("journey_id", journey_id)
       .eq("user_id", user_id);
     if (error) {
+      journey.error("Error deleting journey", {
+        userId: user_id,
+        journeyId: journey_id,
+        reason: "JOURNEY_DELETION_ERROR",
+        error,
+      });
       return {
         success: false,
         message: "Error deleting journey",
@@ -57,6 +74,12 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
     }
 
     if (count === 0) {
+      journey.info("Journey not found", {
+        userId: user_id,
+        journeyId: journey_id,
+        reason: "NOT_FOUND",
+        error,
+      });
       return {
         success: false,
         message: "Journey not found",
@@ -86,9 +109,11 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
       },
     };
   } catch (error) {
-    console.error("Error deleting journey", error);
-
     if (error instanceof ZodError) {
+      journey.error("Error validating journey data", {
+        reason: "VALIDATION_ERROR",
+        error,
+      });
       return {
         success: false,
         message: "Error validating journey data",
@@ -103,6 +128,10 @@ const deleteJourneyService = async (deleteJourneyData: journeyInputDTO) => {
       };
     }
 
+    journey.error("Internal server error", {
+      reason: "INTERNAL_ERROR",
+      error,
+    });
     return {
       success: false,
       message: "Internal server error",

@@ -11,9 +11,11 @@ import { supabaseAdmin } from "../../config/supabase";
 import { SafetyCircleRow } from "../../types/safetyCircle.types";
 import { isDev } from "../../utils/devEnv.util";
 import validateUser from "../../utils/validateUser.util";
+import { randomUUID } from "node:crypto";
 
 const safetyCircle = logger.child({
   service: "readCircleMemberService",
+  requestId: randomUUID(),
 });
 
 const readCircleMemberService = async (userId: string) => {

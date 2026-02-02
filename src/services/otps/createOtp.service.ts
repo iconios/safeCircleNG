@@ -16,66 +16,27 @@ import { phoneNumber, PhoneNumberSchema } from "../../types/user.types";
 import { isDev } from "../../utils/devEnv.util";
 import { otpGen } from "otp-gen-agent";
 import { supabaseAdmin } from "../../config/supabase";
-import SendSMSUtil from "../../utils/sendSMS.util";
 import { OTP_EXPIRES_MINUTES } from "../../config/auth";
 import HashString from "../../utils/hashString.util";
 import {
   isHourWindowExpired,
   isDayWindowExpired,
 } from "../../utils/windowExpired.util";
+import logger from "../../config/logger";
+import { randomUUID } from "node:crypto";
+import { maskPhone } from "../../utils/maskPhone.util";
+import dispatchOtpService from "./dispatchOtp.service";
 
-const dispatchOtp = async (
-  otpId: string,
-  phoneNumber: string,
-  otp: string,
-  type: string,
-  at: Date,
-) => {
-  const message = `Your SafeCircle verification code is ${otp}. Expires in ${OTP_EXPIRES_MINUTES} minutes.`;
-  const result = await SendSMSUtil(phoneNumber, message);
-  if (!result.success) {
-    await supabaseAdmin
-      .from("otps")
-      .update({
-        status: "failed",
-        otp_code: null,
-        expires_at: null,
-      })
-      .eq("phone_number", phoneNumber)
-      .eq("type", type)
-      .eq("id", otpId);
-
-    return {
-      success: false,
-      message: "Failed to send OTP. Please try again",
-      data: null,
-      error: {
-        code: "SMS_FAILED",
-        details: "Error sending SMS",
-      },
-      metadata: {
-        timestamp: new Date().toISOString(),
-        phoneNumber: isDev ? phoneNumber : undefined,
-      },
-    };
-  }
-
-  return {
-    success: true,
-    message: "Otp created and sent via sms",
-    data: null,
-    error: null,
-    metadata: {
-      timestamp: at.toISOString(),
-      phoneNumber: isDev ? phoneNumber : undefined,
-    },
-  };
-};
+const createOtp = logger.child({
+  service: "createOtpService",
+  requestId: randomUUID(),
+});
 
 const createOtpService = async (
   phoneNumber: phoneNumber,
   type: otpType,
   userId: string,
+  channel: string,
 ) => {
   const now = new Date();
   try {
@@ -137,6 +98,9 @@ const createOtpService = async (
       .limit(1)
       .maybeSingle();
     if (confirmError) {
+      createOtp.info("Error confirming otp. Please try again", {
+        phoneNumber: maskPhone(validatedPhoneNumber),
+      });
       return {
         success: false,
         message: "Error confirming otp. Please try again",
@@ -219,7 +183,8 @@ const createOtpService = async (
         };
       }
 
-      const smsResult = await dispatchOtp(
+      const smsResult = await dispatchOtpService(
+        channel,
         existingOtp.id,
         validatedPhoneNumber,
         otp,
@@ -254,6 +219,10 @@ const createOtpService = async (
       .single();
 
     if (error) {
+      createOtp.error("Error creating otp", {
+        reason: error.message,
+        phoneNumber: maskPhone(validatedPhoneNumber),
+      });
       return {
         success: false,
         message: "Error creating otp",
@@ -272,7 +241,8 @@ const createOtpService = async (
     }
 
     // 6. Send otp to caller
-    const smsResult = await dispatchOtp(
+    const smsResult = await dispatchOtpService(
+      channel,
       data.id,
       validatedPhoneNumber,
       otp,
@@ -311,11 +281,11 @@ const createOtpService = async (
     }
     return smsResult;
   } catch (error) {
-    if (isDev) {
-      console.error("createOtpService error:", error);
-    }
-
     if (error instanceof ZodError) {
+      createOtp.error("Otp data validation failed", {
+        reason: error.message,
+        phoneNumber: maskPhone(phoneNumber),
+      });
       return {
         success: false,
         message: error.message || "Otp data validation failed",
@@ -331,6 +301,9 @@ const createOtpService = async (
       };
     }
 
+    createOtp.error("Internal server error", {
+      phoneNumber: maskPhone(phoneNumber),
+    });
     return {
       success: false,
       message: "Internal server error",

@@ -18,7 +18,7 @@ import {
 } from "../types/auth.types";
 import loginAuthService from "../services/auth/login.auth.service";
 
-const signupController = async (req: Request, res: Response) => {
+const authController = async (req: Request, res: Response) => {
   try {
     // 1. Accept and validate user input
     const signUpData = req.body as SignUpDataDTO;
@@ -164,4 +164,4 @@ const loginController = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export { signupController, verifyOtpController, loginController };
+export { authController, verifyOtpController, loginController };

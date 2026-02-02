@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { timestamp } from "./emergency.types.ts";
-import { PhoneNumberSchema } from "./user.types.ts";
+import { timestamp } from "./emergency.types";
+import { PhoneNumberSchema } from "./user.types";
 
 export const otpTypeEnum = z.enum(["signup", "login"]);
 const otpStatusEnum = z.enum(["pending", "verified", "expired", "failed"]);

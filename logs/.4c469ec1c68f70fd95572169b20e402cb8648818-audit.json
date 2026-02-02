@@ -1,15 +1,45 @@
 {
-  "keep": {
-    "days": true,
-    "amount": 14
-  },
-  "auditLog": "C:\\Users\\hp\\Documents\\Portfolio SafeCircle NG\\SafeCircleNG\\backend\\logs\\.4c469ec1c68f70fd95572169b20e402cb8648818-audit.json",
-  "files": [
-    {
-      "date": 1769241839939,
-      "name": "C:\\Users\\hp\\Documents\\Portfolio SafeCircle NG\\SafeCircleNG\\backend\\logs\\combined-2026-01-24.log",
-      "hash": "4eaab86ec7146070a0b2458e0d4d6cd1bc24b11dcf5c44efbf18c3468a8ad1da"
-    }
-  ],
-  "hashType": "sha256"
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\hp\\Documents\\Portfolio SafeCircle NG\\SafeCircleNG\\backend\\logs\\.4c469ec1c68f70fd95572169b20e402cb8648818-audit.json",
+    "files": [
+        {
+            "date": 1769241839939,
+            "name": "C:\\Users\\hp\\Documents\\Portfolio SafeCircle NG\\SafeCircleNG\\backend\\logs\\combined-2026-01-24.log",
+            "hash": "4eaab86ec7146070a0b2458e0d4d6cd1bc24b11dcf5c44efbf18c3468a8ad1da"
+        },
+        {
+            "date": 1769322234424,
+            "name": "C:\\Users\\hp\\Documents\\Portfolio SafeCircle NG\\SafeCircleNG\\backend\\logs\\combined-2026-01-25.log",
+            "hash": "605a2fd7cce9aec223fc51de607b744940ec2483b29a0dba058c275d572e2e89"
+        },
+        {
+            "date": 1769682126809,
+            "name": "C:\\Users\\hp\\Documents\\Portfolio SafeCircle NG\\SafeCircleNG\\backend\\logs\\combined-2026-01-29.log",
+            "hash": "8eed24315b9740dea4fdb45964cafef362b658b21f13f541ec10c293c6ada38c"
+        },
+        {
+            "date": 1769771046542,
+            "name": "C:\\Users\\hp\\Documents\\Portfolio SafeCircle NG\\SafeCircleNG\\backend\\logs\\combined-2026-01-30.log",
+            "hash": "a48b40122c40af9e9bc56d1623e285cbe7483c903fb6e014bb14d26e113d2d0a"
+        },
+        {
+            "date": 1769890032592,
+            "name": "C:\\Users\\hp\\Documents\\Portfolio SafeCircle NG\\SafeCircleNG\\backend\\logs\\combined-2026-01-31.log",
+            "hash": "7b7375bd6b993d7981a26a1cb4d37a597e922cf869c5b76fb8ccf34f0ab94a00"
+        },
+        {
+            "date": 1769930898567,
+            "name": "C:\\Users\\hp\\Documents\\Portfolio SafeCircle NG\\SafeCircleNG\\backend\\logs\\combined-2026-02-01.log",
+            "hash": "b7a52e112968555c7cef2ed2318a8cd4d1b3a7d597142b72bf6cbf17426d626a"
+        },
+        {
+            "date": 1770001776311,
+            "name": "C:\\Users\\hp\\Documents\\Portfolio SafeCircle NG\\SafeCircleNG\\backend\\logs\\combined-2026-02-02.log",
+            "hash": "715e4a6746a3164d252c6c1ff13434fffd0e8bc1d1dfbdcbc2343d978289a22f"
+        }
+    ],
+    "hashType": "sha256"
 }

@@ -6,10 +6,17 @@
 3. Send response to user
 */
 
-import { supabaseAdmin } from "../../config/supabase.ts";
-import { JourneyRow } from "../../types/journey.types.ts";
-import { isDev } from "../../utils/devEnv.util.ts";
-import validateUser from "../../utils/validateUser.util.ts";
+import { supabaseAdmin } from "../../config/supabase";
+import { JourneyRow } from "../../types/journey.types";
+import { isDev } from "../../utils/devEnv.util";
+import validateUser from "../../utils/validateUser.util";
+import logger from "../../config/logger";
+import { randomUUID } from "node:crypto";
+
+const journey = logger.child({
+  service: "readJourneyService",
+  requestId: randomUUID(),
+});
 
 const readJourneyService = async (userId: string) => {
   const now = new Date();
@@ -17,6 +24,9 @@ const readJourneyService = async (userId: string) => {
     // 1. Accept and validate user id
     const userValidation = await validateUser(userId, now);
     if (!userValidation.success) {
+      journey.info("User validation failed", {
+        userId,
+      });
       return userValidation;
     }
 
@@ -29,6 +39,9 @@ const readJourneyService = async (userId: string) => {
       .range(0, 19);
 
     if (journeysError) {
+      journey.info("Error fetching journeys", {
+        userId,
+      });
       return {
         success: false,
         message: "Error fetching journeys",
@@ -62,8 +75,10 @@ const readJourneyService = async (userId: string) => {
       },
     };
   } catch (error) {
-    console.error("Error fetching journeys", error);
-
+    journey.error("Internal server error", {
+      userId,
+      error,
+    });
     return {
       success: false,
       message: "Internal server error",

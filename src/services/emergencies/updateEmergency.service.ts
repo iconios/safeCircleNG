@@ -9,16 +9,23 @@
 */
 
 import { ZodError } from "zod";
-import { supabaseAdmin } from "../../config/supabase.ts";
+import { supabaseAdmin } from "../../config/supabase";
 import {
   emergencyInputDTO,
   emergencyInputSchema,
   emergencyUpdate,
   emergencyUpdateSchema,
-} from "../../types/emergency.types.ts";
-import validateUser from "../../utils/validateUser.util.ts";
-import validateJourney from "../../utils/validateJourney.util.ts";
-import { isDev } from "../../utils/devEnv.util.ts";
+} from "../../types/emergency.types";
+import validateUser from "../../utils/validateUser.util";
+import validateJourney from "../../utils/validateJourney.util";
+import { isDev } from "../../utils/devEnv.util";
+import logger from "../../config/logger";
+import { randomUUID } from "node:crypto";
+
+const emergencyLog = logger.child({
+  service: "updateEmergencyService",
+  requestId: randomUUID(),
+});
 
 const updateEmergencyService = async (
   emergencyInputData: emergencyInputDTO,
@@ -31,12 +38,20 @@ const updateEmergencyService = async (
       emergencyInputSchema.parse(emergencyInputData);
     const userValidation = await validateUser(user_id, now);
     if (!userValidation.success) {
+      emergencyLog.info("User validation failed", {
+        userId: user_id,
+        journeyId: journey_id,
+      });
       return userValidation;
     }
 
     // 2. Accept and validate journey id
     const journeyValidation = await validateJourney(user_id, journey_id, now);
     if (!journeyValidation.success) {
+      emergencyLog.info("Journey validation failed", {
+        userId: user_id,
+        journeyId: journey_id,
+      });
       return journeyValidation;
     }
 
@@ -48,6 +63,11 @@ const updateEmergencyService = async (
       .eq("user_id", user_id)
       .maybeSingle();
     if (error || !emergencyData) {
+      emergencyLog.error("Emergency not found", {
+        userId: user_id,
+        journeyId: journey_id,
+        error,
+      });
       return {
         success: false,
         message: "Emergency not found",
@@ -76,6 +96,11 @@ const updateEmergencyService = async (
       .select()
       .single();
     if (updateError) {
+      emergencyLog.error("Error updating emergency", {
+        userId: user_id,
+        journeyId: journey_id,
+        error: updateError,
+      });
       return {
         success: false,
         message: "Error updating emergency",
@@ -107,9 +132,10 @@ const updateEmergencyService = async (
       },
     };
   } catch (error) {
-    console.error("Error updating emergency", error);
-
     if (error instanceof ZodError) {
+      emergencyLog.error("Emergency data validation error", {
+        error,
+      });
       return {
         success: false,
         message: "Emergency data validation error",
@@ -126,6 +152,9 @@ const updateEmergencyService = async (
       };
     }
 
+    emergencyLog.error("Internal server error", {
+      error,
+    });
     return {
       success: false,
       message: "Internal server error",

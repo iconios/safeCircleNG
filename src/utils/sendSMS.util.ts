@@ -5,7 +5,11 @@ const TERMII_API_KEY = process.env.TERMII_API_KEY;
 const senderID = process.env.SMS_SENDER_ID;
 const TERMII_BASE_URL = process.env.TERMII_BASE_URL;
 
-const SendSMSUtil = async (phoneNumber: string, message: string) => {
+const SendSMSUtil = async (
+  phoneNumber: string,
+  message: string,
+  channel: string,
+) => {
   const now = new Date();
   if (!TERMII_API_KEY || !TERMII_BASE_URL || !senderID) {
     throw new Error("SMS provider configuration missing");
@@ -17,7 +21,7 @@ const SendSMSUtil = async (phoneNumber: string, message: string) => {
     from: senderID,
     sms: message,
     type: "plain",
-    channel: "generic",
+    channel: channel,
     api_key: TERMII_API_KEY,
   };
 

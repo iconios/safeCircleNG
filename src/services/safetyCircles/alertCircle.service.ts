@@ -30,9 +30,11 @@ import {
 import messageConstructor from "../../utils/messageConstructor";
 import createMessageLogService from "../messageLogs/createLog.service";
 import logger from "../../config/logger";
+import { randomUUID } from "node:crypto";
 
 const safetyCircle = logger.child({
   service: "alertCircleMembersService",
+  requestId: randomUUID(),
 });
 
 const alertCircleMembersService = async (

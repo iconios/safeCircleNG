@@ -52,10 +52,7 @@ import logger from "../../config/logger";
 import { randomUUID } from "node:crypto";
 import { maskPhone } from "../../utils/maskPhone.util";
 
-const auth = logger.child({
-  service: "VerifyOtpAuthService",
-  requestId: randomUUID(),
-});
+
 
 export const updateLastOtpRequestAt = async (id: string, at: Date) => {
   try {
@@ -71,6 +68,10 @@ export const updateLastOtpRequestAt = async (id: string, at: Date) => {
 };
 
 const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
+  const auth = logger.child({
+  service: "VerifyOtpAuthService",
+  requestId: randomUUID(),
+});
   const JWT_SECRET = process.env.JWT_SECRET;
   const now = new Date(Date.now());
   if (!JWT_SECRET) {

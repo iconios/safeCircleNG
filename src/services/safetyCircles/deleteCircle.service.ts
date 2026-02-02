@@ -12,9 +12,11 @@ import { supabaseAdmin } from "../../config/supabase";
 import { isDev } from "../../utils/devEnv.util";
 import validateCircle from "../../utils/validateCircle.util";
 import validateUser from "../../utils/validateUser.util";
+import { randomUUID } from "node:crypto";
 
 const safetyCircle = logger.child({
   service: "deleteCircleMemberService",
+  requestId: randomUUID(),
 });
 
 const deleteCircleMemberService = async (userId: string, circleId: string) => {

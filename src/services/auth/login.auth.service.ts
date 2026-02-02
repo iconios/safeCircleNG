@@ -267,7 +267,7 @@ const loginAuthService = async (loginInput: loginInputDTO) => {
     //    b. otp_requests_last_hour += 1
     //    c. otp_requests_today += 1
     // 9. Respond success
-    return await createOtpService(phone_number, "login", userData.id);
+    return await createOtpService(phone_number, "login", userData.id, "sms");
   } catch (error) {
     if (isDev) {
       auth.error("loginAuthService error:", error);

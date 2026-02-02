@@ -7,13 +7,20 @@
 */
 
 import { ZodError } from "zod";
-import { supabaseAdmin } from "../../config/supabase.ts";
+import { supabaseAdmin } from "../../config/supabase";
 import {
   JourneyRow,
   journeyInputDTO,
   journeyInputSchema,
-} from "../../types/journey.types.ts";
-import validateUser from "../../utils/validateUser.util.ts";
+} from "../../types/journey.types";
+import validateUser from "../../utils/validateUser.util";
+import logger from "../../config/logger";
+import { randomUUID } from "node:crypto";
+
+const journey = logger.child({
+  service: "readJourneyByIdService",
+  requestId: randomUUID(),
+});
 
 const readJourneyByIdService = async (readJourneyData: journeyInputDTO) => {
   const NODE_ENV = process.env.NODE_ENV ?? "production";
@@ -23,6 +30,9 @@ const readJourneyByIdService = async (readJourneyData: journeyInputDTO) => {
     const { user_id, journey_id } = journeyInputSchema.parse(readJourneyData);
     const userValidation = await validateUser(user_id, now);
     if (!userValidation.success) {
+      journey.info("User validation failed", {
+        userId: user_id,
+      });
       return userValidation;
     }
 
@@ -35,10 +45,15 @@ const readJourneyByIdService = async (readJourneyData: journeyInputDTO) => {
       .maybeSingle();
 
     if (error) {
+      journey.error("Error fetching journey", {
+        userId: user_id,
+        journeyId: journey_id,
+        error,
+      });
       return {
         success: false,
         message: "Error fetching journey",
-        data: {},
+        data: null,
         error: {
           code: "FETCH_ERROR",
           details:
@@ -85,9 +100,10 @@ const readJourneyByIdService = async (readJourneyData: journeyInputDTO) => {
       },
     };
   } catch (error) {
-    console.error("Error fetching journey", error);
-
     if (error instanceof ZodError) {
+      journey.error("Error validating the input data", {
+        error,
+      });
       return {
         success: false,
         message: "Error validating the input data",
@@ -102,6 +118,9 @@ const readJourneyByIdService = async (readJourneyData: journeyInputDTO) => {
       };
     }
 
+    journey.error("Internal server error", {
+      error,
+    });
     return {
       success: false,
       message: "Internal server error",

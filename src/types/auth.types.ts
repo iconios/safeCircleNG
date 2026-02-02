@@ -6,6 +6,7 @@ export const SignUpDataDTOSchema = z
   .object({
     phone_number: PhoneNumberSchema,
     device_id: z.string(),
+    channel: z.enum(["sms", "whatsapp"]),
   })
   .strict();
 

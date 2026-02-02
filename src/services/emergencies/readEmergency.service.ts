@@ -11,11 +11,18 @@ import { ZodError } from "zod";
 import {
   emergencyInputDTO,
   emergencyInputSchema,
-} from "../../types/emergency.types.ts";
-import validateUser from "../../utils/validateUser.util.ts";
-import validateJourney from "../../utils/validateJourney.util.ts";
-import { supabaseAdmin } from "../../config/supabase.ts";
-import { isDev } from "../../utils/devEnv.util.ts";
+} from "../../types/emergency.types";
+import validateUser from "../../utils/validateUser.util";
+import validateJourney from "../../utils/validateJourney.util";
+import { supabaseAdmin } from "../../config/supabase";
+import { isDev } from "../../utils/devEnv.util";
+import logger from "../../config/logger";
+import { randomUUID } from "node:crypto";
+
+const emergencyLog = logger.child({
+  service: "readEmergencyByJourneyService",
+  requestId: randomUUID(),
+});
 
 const readEmergencyByJourneyService = async (
   emergencyDataInput: emergencyInputDTO,
@@ -27,6 +34,10 @@ const readEmergencyByJourneyService = async (
       emergencyInputSchema.parse(emergencyDataInput);
     const userValidation = await validateUser(user_id, now);
     if (!userValidation.success) {
+      emergencyLog.info("User validation failed", {
+        userId: user_id,
+        journeyId: journey_id,
+      });
       return userValidation;
     }
 
@@ -44,6 +55,11 @@ const readEmergencyByJourneyService = async (
       .eq("user_id", user_id)
       .maybeSingle();
     if (error) {
+      emergencyLog.error("Error reading emergency", {
+        userId: user_id,
+        journeyId: journey_id,
+        error,
+      });
       return {
         success: false,
         message: "Error reading emergency",
@@ -75,9 +91,10 @@ const readEmergencyByJourneyService = async (
       },
     };
   } catch (error) {
-    console.error("Error reading emergencies", error);
-
     if (error instanceof ZodError) {
+      emergencyLog.error("Emergency data validation error", {
+        error,
+      });
       return {
         success: false,
         message: "Emergency data validation error",
@@ -94,6 +111,9 @@ const readEmergencyByJourneyService = async (
       };
     }
 
+    emergencyLog.error("Internal server error", {
+      error,
+    });
     return {
       success: false,
       message: "Internal server error",

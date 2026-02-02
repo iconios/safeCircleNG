@@ -18,6 +18,13 @@ import {
 } from "../../types/journey.types";
 import validateUser from "../../utils/validateUser.util";
 import { supabaseAdmin } from "../../config/supabase";
+import logger from "../../config/logger";
+import { randomUUID } from "node:crypto";
+
+const journey = logger.child({
+  service: "createJourneyService",
+  requestId: randomUUID(),
+});
 
 const createJourneyService = async (
   userId: string,
@@ -28,6 +35,9 @@ const createJourneyService = async (
     // 1. Accept and validate the user Id
     const userValidation = await validateUser(userId, now);
     if (!userValidation.success) {
+      journey.info("User validation failed", {
+        userId,
+      });
       return userValidation;
     }
 
@@ -47,6 +57,11 @@ const createJourneyService = async (
       .single();
 
     if (error || !data) {
+      journey.error("Error creating journey", {
+        userId,
+        reason: "JOURNEY_CREATION_ERROR",
+        error,
+      });
       return {
         success: false,
         message: "Error creating journey",
@@ -75,8 +90,12 @@ const createJourneyService = async (
       },
     };
   } catch (error) {
-    console.error("createJourneyService error:", error);
     if (error instanceof ZodError) {
+      journey.error("Journey data validation error", {
+        userId,
+        reason: "VALIDATION_ERROR",
+        error,
+      });
       return {
         success: false,
         message: "Journey data validation error",
@@ -92,6 +111,11 @@ const createJourneyService = async (
       };
     }
 
+    journey.error("Internal server error", {
+      userId,
+      reason: "INTERNAL_ERROR",
+      error,
+    });
     return {
       success: false,
       message: "Internal server error",

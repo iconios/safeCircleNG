@@ -20,9 +20,11 @@ import {
 import validateUser from "../../utils/validateUser.util";
 import { isDev } from "../../utils/devEnv.util";
 import logger from "../../config/logger";
+import { randomUUID } from "node:crypto";
 
 const safetyCircle = logger.child({
   service: "createCircleMemberService",
+  requestId: randomUUID(),
 });
 
 const createCircleMemberService = async (

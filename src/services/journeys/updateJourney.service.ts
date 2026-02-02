@@ -19,6 +19,13 @@ import {
 import validateJourney from "../../utils/validateJourney.util";
 import validateUser from "../../utils/validateUser.util";
 import { isDev } from "../../utils/devEnv.util";
+import logger from "../../config/logger";
+import { randomUUID } from "node:crypto";
+
+const journey = logger.child({
+  service: "updateJourneyService",
+  requestId: randomUUID(),
+});
 
 const updateJourneyService = async (
   updateJourneyInput: journeyInputDTO,
@@ -31,12 +38,19 @@ const updateJourneyService = async (
       journeyInputSchema.parse(updateJourneyInput);
     const userValidation = await validateUser(user_id, now);
     if (!userValidation.success) {
+      journey.info("User validation failed", {
+        userId: user_id,
+      });
       return userValidation;
     }
 
     // 2. Accept and validate journey id
     const journeyValidation = await validateJourney(user_id, journey_id, now);
     if (!journeyValidation.success) {
+      journey.info("User validation failed", {
+        userId: user_id,
+        journeyId: journey_id,
+      });
       return journeyValidation;
     }
 
@@ -51,6 +65,11 @@ const updateJourneyService = async (
       .single();
 
     if (error) {
+      journey.error("Error updating journey", {
+        userId: user_id,
+        journeyId: journey_id,
+        error,
+      });
       return {
         success: false,
         message: "Error updating journey",
@@ -81,9 +100,10 @@ const updateJourneyService = async (
       },
     };
   } catch (error) {
-    console.error("Error updating journey", error);
-
     if (error instanceof ZodError) {
+      journey.error("Error validating journey update data", {
+        error,
+      });
       return {
         success: false,
         message: "Error validating journey update data",
@@ -98,6 +118,9 @@ const updateJourneyService = async (
       };
     }
 
+    journey.error("Internal server error", {
+      error,
+    });
     return {
       success: false,
       message: "Internal server error",
