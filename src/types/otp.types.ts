@@ -13,7 +13,7 @@ export const otpRowSchema = z
     phone_number: PhoneNumberSchema,
     user_id: z.uuid(),
     otp_code: z.string().nullable(),
-    type: otpTypeEnum,
+    type: otpTypeEnum.default("login"),
     status: otpStatusEnum.default("pending"),
     attempts: z.number().int().default(0),
     max_attempts: z.number().int().default(3),
@@ -47,3 +47,14 @@ export type otpInsert = z.infer<typeof otpInsertSchema>;
 export type otpUpdate = z.infer<typeof otpUpdateSchema>;
 export type otpDelete = z.infer<typeof otpDeleteSchema>;
 export type otpRow = z.infer<typeof otpRowSchema>;
+
+export const dispatchOtpInputSchema = z.object({
+  channel: z.string(),
+  otpId: z.string(),
+  phoneNumber: z.string(),
+  otp: z.string(),
+  type: z.string(),
+  at: z.iso.datetime(),
+});
+
+export type dispatchOtpInputType = z.infer<typeof dispatchOtpInputSchema>;

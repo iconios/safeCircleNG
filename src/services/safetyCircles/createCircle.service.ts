@@ -21,6 +21,7 @@ import validateUser from "../../utils/validateUser.util";
 import { isDev } from "../../utils/devEnv.util";
 import logger from "../../config/logger";
 import { randomUUID } from "node:crypto";
+import { errorResponseUtil } from "../../utils/responses.util";
 
 const safetyCircle = logger.child({
   service: "createCircleMemberService",
@@ -64,19 +65,16 @@ const createCircleMemberService = async (
         reason: "CIRCLE_MEMBER_CREATION_ERROR",
         error: circleError,
       });
-      return {
-        success: false,
-        message: "Error creating circle member",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Error creating circle member",
+        {
           code: "CIRCLE_MEMBER_CREATION_ERROR",
           details: isDev ? circleError.message : "Error creating circle member",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           user_id: userId,
         },
-      };
+      );
     }
 
     // 4. Send response to user
@@ -105,19 +103,16 @@ const createCircleMemberService = async (
         reason: "CIRCLE_MEMBER_CREATION_ERROR",
         error,
       });
-      return {
-        success: false,
-        message: "Error validating circle data",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Error validating circle data",
+        {
           code: "VALIDATION_ERROR",
           details: "Error validating circle data",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           user_id: userId,
         },
-      };
+      );
     }
 
     safetyCircle.error("Internal server error", {
@@ -125,19 +120,16 @@ const createCircleMemberService = async (
       reason: "INTERNAL_ERROR",
       error,
     });
-    return {
-      success: false,
-      message: "Internal server error",
-      data: null,
-      error: {
+    return errorResponseUtil(
+      "Internal server error",
+      {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while creating cirle member",
       },
-      metadata: {
-        timestamp: now.toISOString(),
+      {
         user_id: userId,
       },
-    };
+    );
   }
 };
 

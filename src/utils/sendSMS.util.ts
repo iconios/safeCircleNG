@@ -34,11 +34,12 @@ const SendSMSUtil = async (
     console.log("SMS sent successfully:", {
       phoneNumber,
       provider: "termii",
+      channel: "sms",
     });
     return {
       success: true,
       message: `SMS sent successfully to ${phoneNumber}`,
-      data: response.status, // Matches an expected delivery_status for message logs
+      data: response.status,
       error: null,
       metadata: {
         timestamp: now.toISOString(),
@@ -54,8 +55,8 @@ const SendSMSUtil = async (
       message: `Error sending sms to ${phoneNumber}`,
       data: null,
       error: {
-        code: "OTP_SENDING_FAILED",
-        details: "failed", // Matches an expected delivery_status for message logs
+        code: "SMS_OTP_SENDING_FAILED",
+        details: "failed",
       },
       metadata: {
         timestamp: now.toISOString(),

@@ -10,6 +10,10 @@
 import logger from "../../config/logger";
 import { supabaseAdmin } from "../../config/supabase";
 import { isDev } from "../../utils/devEnv.util";
+import {
+  errorResponseUtil,
+  successResponseUtil,
+} from "../../utils/responses.util";
 import validateCircle from "../../utils/validateCircle.util";
 import validateUser from "../../utils/validateUser.util";
 import { randomUUID } from "node:crypto";
@@ -54,33 +58,23 @@ const deleteCircleMemberService = async (userId: string, circleId: string) => {
         reason: "CIRCLE_DELETE_ERROR",
         error,
       });
-      return {
-        success: false,
-        message: "Error deleting circle member",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Error deleting circle member",
+        {
           code: "CIRCLE_DELETE_ERROR",
           details: isDev ? error.message : "Error deleting circle member",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           user_id: userId,
           circle_id: circleId,
         },
-      };
+      );
     }
 
-    return {
-      success: true,
-      message: "Circle member deleted successfully",
-      data: null,
-      error: null,
-      metadata: {
-        timestamp: now.toISOString(),
-        user_id: userId,
-        circle_id: circleId,
-      },
-    };
+    return successResponseUtil("Circle member deleted successfully", null, {
+      user_id: userId,
+      circle_id: circleId,
+    });
   } catch (error) {
     safetyCircle.error("Internal server error", {
       userId,
@@ -88,20 +82,17 @@ const deleteCircleMemberService = async (userId: string, circleId: string) => {
       reason: "INTERNAL_ERROR",
       error,
     });
-    return {
-      success: false,
-      message: "Internal server error",
-      data: {},
-      error: {
+    return errorResponseUtil(
+      "Internal server error",
+      {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while deleting circle member",
       },
-      metadata: {
-        timestamp: now.toISOString(),
+      {
         user_id: userId,
         circle_id: circleId,
       },
-    };
+    );
   }
 };
 

@@ -10,6 +10,10 @@ import logger from "../../config/logger";
 import { supabaseAdmin } from "../../config/supabase";
 import { SafetyCircleRow } from "../../types/safetyCircle.types";
 import { isDev } from "../../utils/devEnv.util";
+import {
+  errorResponseUtil,
+  successResponseUtil,
+} from "../../utils/responses.util";
 import validateUser from "../../utils/validateUser.util";
 import { randomUUID } from "node:crypto";
 
@@ -42,19 +46,16 @@ const readCircleMemberService = async (userId: string) => {
         reason: "FETCH_ERROR",
         error,
       });
-      return {
-        success: false,
-        message: "Error fetching circle members",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Error fetching circle members",
+        {
           code: "FETCH_ERROR",
           details: isDev ? error.message : "Error fetching circle members",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           user_id: userId,
         },
-      };
+      );
     }
 
     const circleData: SafetyCircleRow[] = data;
@@ -63,32 +64,26 @@ const readCircleMemberService = async (userId: string) => {
         userId,
         reason: "NOT_FOUND",
       });
-      return {
-        success: false,
-        message: "No circle members found",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "No circle members found",
+        {
           code: "NOT_FOUND",
           details: "No circle members found",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           user_id: userId,
         },
-      };
+      );
     }
 
     // 3. Send response to user
-    return {
-      success: true,
-      message: "Circle members fetched successfully",
-      data: circleData,
-      error: null,
-      metadata: {
-        timestamp: now.toISOString(),
+    return successResponseUtil(
+      "Circle members fetched successfully",
+      circleData,
+      {
         user_id: userId,
       },
-    };
+    );
   } catch (error) {
     safetyCircle.error("Internal server error", {
       userId,
@@ -96,19 +91,16 @@ const readCircleMemberService = async (userId: string) => {
       error,
     });
 
-    return {
-      success: false,
-      message: "Internal server error",
-      data: null,
-      error: {
+    return errorResponseUtil(
+      "Internal server error",
+      {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while fetching circle members",
       },
-      metadata: {
-        timestamp: now.toISOString(),
+      {
         user_id: userId,
       },
-    };
+    );
   }
 };
 

@@ -51,8 +51,10 @@ import HashString from "../../utils/hashString.util";
 import logger from "../../config/logger";
 import { randomUUID } from "node:crypto";
 import { maskPhone } from "../../utils/maskPhone.util";
-
-
+import {
+  errorResponseUtil,
+  successResponseUtil,
+} from "../../utils/responses.util";
 
 export const updateLastOtpRequestAt = async (id: string, at: Date) => {
   try {
@@ -69,9 +71,9 @@ export const updateLastOtpRequestAt = async (id: string, at: Date) => {
 
 const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
   const auth = logger.child({
-  service: "VerifyOtpAuthService",
-  requestId: randomUUID(),
-});
+    service: "VerifyOtpAuthService",
+    requestId: randomUUID(),
+  });
   const JWT_SECRET = process.env.JWT_SECRET;
   const now = new Date(Date.now());
   if (!JWT_SECRET) {
@@ -97,19 +99,16 @@ const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
         phone: maskedPhone,
         reason: "FETCH_ERROR",
       });
-      return {
-        success: false,
-        message: "Error fetching user",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Error fetching user",
+        {
           code: "FETCH_ERROR",
           details: "Error fetching user in db",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           phoneNumber: phone_number,
         },
-      };
+      );
     }
 
     //  a. If user does not exist → reject (signup required)
@@ -118,19 +117,16 @@ const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
         phone: maskedPhone,
         reason: "NOT_FOUND",
       });
-      return {
-        success: false,
-        message: "Number not found. Please sign up",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Number not found. Please sign up",
+        {
           code: "NOT_FOUND",
           details: "Number not found in the database",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           phoneNumber: phone_number,
         },
-      };
+      );
     }
 
     //  b. If user status is "suspended" → reject
@@ -139,37 +135,17 @@ const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
         phone: maskedPhone,
         reason: "USER_SUSPENDED",
       });
-      return {
-        success: false,
-        message: "Account suspended. Contact support",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Account suspended. Contact support",
+        {
           code: "USER_SUSPENDED",
           details: "User account suspended by admin",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           phoneNumber: phone_number,
         },
-      };
+      );
     }
-
-    //  c. If user status is "inactive" → reject
-    // if (userData.status === "inactive") {
-    //   return {
-    //     success: false,
-    //     message: "Subscription expired. Please subscribe account",
-    //     data: null,
-    //     error: {
-    //       code: "ACCOUNT_INACTIVE",
-    //       details: "User account subscription expired",
-    //     },
-    //     metadata: {
-    //       timestamp: now.toISOString(),
-    //       phoneNumber: phone_number,
-    //     },
-    //   };
-    // }
 
     // 3. Enforce OTP lockout rules (app-level)
     // a. If otp_locked_until > now → reject with remaining wait time
@@ -184,19 +160,16 @@ const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
         phone: maskedPhone,
         reason: "ACCOUNT_LOCKED",
       });
-      return {
-        success: false,
-        message: `Too many attempts, try again in ${remainingMinutes} minutes`,
-        data: null,
-        error: {
+      return errorResponseUtil(
+        `Too many attempts, try again in ${remainingMinutes} minutes`,
+        {
           code: "ACCOUNT_LOCKED",
           details: "Too many attempts within 15 minutes",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           phoneNumber: phone_number,
         },
-      };
+      );
     }
 
     // 4. Fetch OTP record from `otp_codes`
@@ -217,18 +190,14 @@ const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
         phone: maskedPhone,
         reason: "OTP_FETCH_ERROR",
       });
-      return {
-        success: false,
-        message: "Error fetching otp",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Error fetching otp",
+        {
           code: "OTP_FETCH_ERROR",
           details: "Error fetching otp",
         },
-        metadata: {
-          timestamp: now.toISOString(),
-        },
-      };
+        {},
+      );
     }
 
     //  b. If no OTP found → reject ("Invalid or expired code")
@@ -237,18 +206,14 @@ const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
         phone: maskedPhone,
         reason: "EXPIRED_OR_INVALID_OTP",
       });
-      return {
-        success: false,
-        message: "Invalid or expired code",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Invalid or expired code",
+        {
           code: "EXPIRED_OR_INVALID_OTP",
           details: "Invalid or expired code",
         },
-        metadata: {
-          timestamp: now.toISOString(),
-        },
-      };
+        {},
+      );
     }
 
     // c. If expires_at < now → reject
@@ -257,18 +222,14 @@ const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
         phone: maskedPhone,
         reason: "OTP_EXPIRED",
       });
-      return {
-        success: false,
-        message: "Expired code",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Expired code",
+        {
           code: "OTP_EXPIRED",
           details: "Expired code",
         },
-        metadata: {
-          timestamp: now.toISOString(),
-        },
-      };
+        {},
+      );
     }
 
     // 5. Verify OTP (app-level)
@@ -292,21 +253,18 @@ const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
           phone: maskedPhone,
           reason: "SERVICE_OUTAGE",
         });
-        return {
-          success: false,
-          message: "User update failed. Please verify otp",
-          data: null,
-          error: {
+        return errorResponseUtil(
+          "User update failed. Please verify otp",
+          {
             code: "SERVICE_OUTAGE",
             details: isDev
               ? (userUpdateError.message ?? "Service temporarily unavailable")
               : "Service temporarily unavailable",
           },
-          metadata: {
-            timestamp: new Date().toISOString(),
+          {
             phoneNumber: phone_number,
           },
-        };
+        );
       }
 
       const attemptsExceeded = userOtp.attempts + 1 >= userOtp.max_attempts;
@@ -325,19 +283,16 @@ const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
         phone: maskedPhone,
         reason: "INVALID_OTP",
       });
-      return {
-        success: false,
-        message: "Invalid otp",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Invalid otp",
+        {
           code: "INVALID_OTP",
           details: "Invalid otp",
         },
-        metadata: {
-          timestamp: new Date().toISOString(),
+        {
           phoneNumber: phone_number,
         },
-      };
+      );
     }
 
     // 6. If OTP verification succeeds
@@ -380,58 +335,45 @@ const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
 
     // 8. Return token to client
     //  a. User is now authenticated
-    return {
-      success: true,
-      message: "Token generated successfully",
-      data: {
+    return successResponseUtil(
+      "Token generated successfully",
+      {
         userId: userData.id,
         phoneNumber: phone_number,
         email: userData.email,
         firstName: userData.first_name,
         token,
       },
-      error: null,
-      metadata: {
-        timestamp: now.toISOString(),
-      },
-    };
+      {},
+    );
   } catch (error) {
-    const now = new Date(Date.now());
     if (error instanceof ZodError) {
       auth.error("Error validating input parameters", {
         reason: "VALIDATION_ERROR",
         error,
       });
-      return {
-        success: false,
-        message: "Error validating input parameters",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Error validating input parameters",
+        {
           code: "VALIDATION_ERROR",
           details: "Error while validating input parameters",
         },
-        metadata: {
-          timestamp: now.toISOString(),
-        },
-      };
+        {},
+      );
     }
 
     auth.error("Unexpected error verifying OTP", {
       reason: "VERIFICATION_ERROR",
       error,
     });
-    return {
-      success: false,
-      message: "Unexpected error verifying OTP",
-      data: null,
-      error: {
+    return errorResponseUtil(
+      "Unexpected error verifying OTP",
+      {
         code: "VERIFICATION_ERROR",
         details: "Unexpected error while verifying verification code",
       },
-      metadata: {
-        timestamp: now.toISOString(),
-      },
-    };
+      {},
+    );
   }
 };
 

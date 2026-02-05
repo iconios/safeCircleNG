@@ -31,6 +31,7 @@ import messageConstructor from "../../utils/messageConstructor";
 import createMessageLogService from "../messageLogs/createLog.service";
 import logger from "../../config/logger";
 import { randomUUID } from "node:crypto";
+import { errorResponseUtil } from "../../utils/responses.util";
 
 const safetyCircle = logger.child({
   service: "alertCircleMembersService",
@@ -63,21 +64,18 @@ const alertCircleMembersService = async (
         emergency_id,
         reason: "USER_CONFIRMATION_ERROR",
       });
-      return {
-        success: false,
-        message: "Error while confirming user",
-        data: {},
-        error: {
+      return errorResponseUtil(
+        "Error while confirming user",
+        {
           code: "USER_CONFIRMATION_ERROR",
           details: "Error while confirming user",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           user_id,
           journey_id,
           emergency_id,
         },
-      };
+      );
     }
 
     if (!userData) {
@@ -87,21 +85,18 @@ const alertCircleMembersService = async (
         emergency_id,
         reason: "USER_NOT_FOUND",
       });
-      return {
-        success: false,
-        message: "User not found",
-        data: {},
-        error: {
+      return errorResponseUtil(
+        "User not found",
+        {
           code: "USER_NOT_FOUND",
           details: "User not found",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           user_id,
           journey_id,
           emergency_id,
         },
-      };
+      );
     }
 
     const { data: journeyData, error: journeyError } = await supabaseAdmin
@@ -118,21 +113,18 @@ const alertCircleMembersService = async (
         emergency_id,
         reason: "JOURNEY_CONFIRMATION_ERROR",
       });
-      return {
-        success: false,
-        message: "Error while confirming journey",
-        data: {},
-        error: {
+      return errorResponseUtil(
+        "Error while confirming journey",
+        {
           code: "JOURNEY_CONFIRMATION_ERROR",
           details: "Error while confirming journey",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           user_id,
           journey_id,
           emergency_id,
         },
-      };
+      );
     }
 
     if (!journeyData) {
@@ -142,21 +134,18 @@ const alertCircleMembersService = async (
         emergency_id,
         reason: "JOURNEY_NOT_FOUND",
       });
-      return {
-        success: false,
-        message: "Journeys not found",
-        data: {},
-        error: {
+      return errorResponseUtil(
+        "Journeys not found",
+        {
           code: "JOURNEY_NOT_FOUND",
           details: "Journeys not found",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           user_id,
           journey_id,
           emergency_id,
         },
-      };
+      );
     }
 
     if (emergency_id) {
@@ -175,23 +164,20 @@ const alertCircleMembersService = async (
           reason: "EMERGENCY_NOT_FOUND",
           error,
         });
-        return {
-          success: false,
-          message: "No emergency found for the journey",
-          data: null,
-          error: {
+        return errorResponseUtil(
+          "No emergency found for the journey",
+          {
             code: "EMERGENCY_NOT_FOUND",
             details: isDev
               ? (error.message ?? "No emergency found for the journey")
               : "No emergency found for the journey",
           },
-          metadata: {
-            timestamp: now.toISOString(),
+          {
             user_id,
             journey_id,
             emergency_id,
           },
-        };
+        );
       }
     }
 
@@ -213,22 +199,19 @@ const alertCircleMembersService = async (
         reason: "CIRCLE_MEMBERS_FETCH_ERROR",
         error,
       });
-      return {
-        success: false,
-        message: "Error fetching circle members",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Error fetching circle members",
+        {
           code: "CIRCLE_MEMBERS_FETCH_ERROR",
           details: error
             ? (error.message ?? "Error fetching circle members")
             : "Error fetching circle members",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           user_id,
           journey_id,
         },
-      };
+      );
     }
 
     if (!circleData || circleData.length === 0) {
@@ -239,20 +222,17 @@ const alertCircleMembersService = async (
         reason: "CIRCLE_MEMBERS_NOT_FOUND",
         error,
       });
-      return {
-        success: false,
-        message: "No verified & active circle members found",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "No verified & active circle members found",
+        {
           code: "CIRCLE_MEMBERS_NOT_FOUND",
           details: "No verified & active circle members found",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           user_id,
           journey_id,
         },
-      };
+      );
     }
 
     // 3. Create web access tokens for the number of members
@@ -282,20 +262,18 @@ const alertCircleMembersService = async (
         emergency_id,
         reason: "WEB_LINK_GENERATION_FAILED",
       });
-      return {
-        success: false,
-        message: "Failed to generate access links for circle members",
-        error: {
+      return errorResponseUtil(
+        "Failed to generate access links for circle members",
+        {
           code: "WEB_LINK_GENERATION_FAILED",
           details: "Mismatch between circle members and generated links",
         },
-        metadata: {
-          timestamp: now.toISOString(),
+        {
           user_id,
           journey_id,
           emergency_id,
         },
-      };
+      );
     }
 
     // 4. Send SMS with web link access to each member
@@ -313,7 +291,11 @@ const alertCircleMembersService = async (
         web_link,
         userData.first_name,
       );
-      const response = await SendSMSUtil(member.contact_phone, message);
+      const response = await SendSMSUtil(
+        member.contact_phone,
+        message,
+        "generic",
+      );
       if (response.success) {
         smsSuccess.push({
           contactName: member.contact_name,
@@ -409,38 +391,30 @@ const alertCircleMembersService = async (
         reason: "VALIDATION_ERROR",
         error,
       });
-      return {
-        success: false,
-        message: "Circle alert data validation error",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Circle alert data validation error",
+        {
           code: "VALIDATION_ERROR",
           details: isDev
             ? (error?.message ?? "Circle alert data validation error")
             : "Circle alert data validation error",
         },
-        metadata: {
-          timestamp: now.toISOString(),
-        },
-      };
+        {},
+      );
     }
 
     safetyCircle.error("Internal server error", {
       reason: "INTERNAL_ERROR",
       error,
     });
-    return {
-      success: false,
-      message: "Internal server error",
-      data: null,
-      error: {
+    return errorResponseUtil(
+      "Internal server error",
+      {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while creating alert",
       },
-      metadata: {
-        timestamp: now.toISOString(),
-      },
-    };
+      {},
+    );
   }
 };
 

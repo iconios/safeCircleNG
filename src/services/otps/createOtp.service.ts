@@ -4,42 +4,47 @@
 0. Check user is not locked
 1. Accept and validate phone number
 2. Accept and validate otp data
-3. Invalidate previous otp of the same type
-4. Ensure user owns the phone 
-5. Create otp
-6. Send otp to caller
+3. Ensure user owns the phone 
+4. Check existing otp irrespective of type
+    -> if exisiting and not expired 
+        -> reuse otp (or regenerate otp if Redis missing, UPDATE)
+    -> if existing and expired 
+        -> regenerate otp + UPDATE 
+    -> if no existing otp
+        -> create new otp (INSERT)
+5. Dispatch otp to caller
 */
 
 import { ZodError } from "zod";
-import { otpType, otpTypeEnum } from "../../types/otp.types";
 import { phoneNumber, PhoneNumberSchema } from "../../types/user.types";
 import { isDev } from "../../utils/devEnv.util";
-import { otpGen } from "otp-gen-agent";
 import { supabaseAdmin } from "../../config/supabase";
 import { OTP_EXPIRES_MINUTES } from "../../config/auth";
 import HashString from "../../utils/hashString.util";
-import {
-  isHourWindowExpired,
-  isDayWindowExpired,
-} from "../../utils/windowExpired.util";
 import logger from "../../config/logger";
 import { randomUUID } from "node:crypto";
 import { maskPhone } from "../../utils/maskPhone.util";
 import dispatchOtpService from "./dispatchOtp.service";
+import generateOtpUtil from "../../utils/generateOtp.util";
+import { initializeRedisClient } from "../../config/redisClient";
+import { plainOtpKeyByPhone } from "../../utils/redisKeys";
+import { errorResponseUtil } from "../../utils/responses.util";
 
-const createOtp = logger.child({
-  service: "createOtpService",
-  requestId: randomUUID(),
-});
-
-const createOtpService = async (
-  phoneNumber: phoneNumber,
-  type: otpType,
-  userId: string,
-  channel: string,
-) => {
+const createOtpService = async (phoneNumber: phoneNumber, userId: string) => {
   const now = new Date();
+  let rawOtp: string = "";
+  let hashedOtp: string = "";
+  const client = await initializeRedisClient();
+
+  const createOtp = logger.child({
+    service: "createOtpService",
+    requestId: randomUUID(),
+  });
+
   try {
+    // 1. Accept and validate phone number
+    const validatedPhoneNumber = PhoneNumberSchema.parse(phoneNumber);
+
     // 0. Check user is not locked
     const { data: user } = await supabaseAdmin
       .from("users")
@@ -47,233 +52,215 @@ const createOtpService = async (
         "id, phone_number, otp_locked_until, otp_requests_last_hour, otp_requests_today, otp_hour_window_started_at, otp_day_window_started_at",
       )
       .eq("id", userId)
+      .eq("phone_number", validatedPhoneNumber)
       .single();
 
     if (!user) {
-      return {
-        success: false,
-        message: "Unable to send sms",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Unable to send sms",
+        {
           code: "USER_NOT_FOUND",
           details: "Unable to send sms",
         },
-        metadata: {
-          timestamp: now.toISOString(),
-        },
-      };
+        {},
+      );
     }
 
     if (user?.otp_locked_until && new Date(user.otp_locked_until) > now) {
-      return {
-        success: false,
-        message: "Too many attempts. Try again later",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Too many attempts. Try again later",
+        {
           code: "ACCOUNT_LOCKED",
           details: "Too many attempts. Try again later",
         },
-        metadata: {
-          timestamp: now.toISOString(),
-        },
-      };
+        {},
+      );
     }
 
-    // 1. Accept and validate phone number
-    const validatedPhoneNumber = PhoneNumberSchema.parse(phoneNumber);
-
     // 2. Accept and validate otp data
-    const validatedType = otpTypeEnum.parse(type);
     const expires = new Date();
     expires.setMinutes(expires.getMinutes() + OTP_EXPIRES_MINUTES);
 
-    // 3. Invalidate previous otp of the same type
+    // 3. Ensure user owns the phone
+    if (user.phone_number !== validatedPhoneNumber) {
+      return errorResponseUtil(
+        "Invalid user context",
+        {
+          code: "USER_PHONE_MISMATCH",
+          details: "Invalid user context",
+        },
+        {},
+      );
+    }
+
+    // 4. Check existing otp irrespective of type
     const { data: existingOtp, error: confirmError } = await supabaseAdmin
       .from("otps")
-      .select("id, expires_at")
+      .select("id, expires_at, otp_code, phone_number")
       .eq("phone_number", validatedPhoneNumber)
-      .eq("type", validatedType)
-      .eq("status", "pending")
-      .order("created_at", { ascending: false })
-      .limit(1)
       .maybeSingle();
     if (confirmError) {
       createOtp.info("Error confirming otp. Please try again", {
         phoneNumber: maskPhone(validatedPhoneNumber),
       });
-      return {
-        success: false,
-        message: "Error confirming otp. Please try again",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        "Error confirming otp. Please try again",
+        {
           code: "OTP_CONFIRMATION_ERROR",
           details: "Error confirming otp. Please try again",
         },
-        metadata: {
-          timestamp: now.toISOString(),
-          phoneNumber: isDev ? validatedPhoneNumber : undefined,
+        {
+          phoneNumber: isDev
+            ? validatedPhoneNumber
+            : maskPhone(validatedPhoneNumber),
         },
-      };
+      );
     }
 
-    if (existingOtp?.expires_at && new Date(existingOtp.expires_at) > now) {
-      return {
-        success: false,
-        message: "Please wait before requesting another code",
-        data: null,
-        error: {
-          code: "OTP_COOLDOWN",
-          details: "Please wait before requesting another code",
-        },
-        metadata: {
-          timestamp: now.toISOString(),
-          phoneNumber: isDev ? validatedPhoneNumber : undefined,
-        },
-      };
-    }
-
-    // 4. Ensure user owns the phone
-    if (user.phone_number !== validatedPhoneNumber) {
-      return {
-        success: false,
-        message: "Invalid user context",
-        error: {
-          code: "USER_PHONE_MISMATCH",
-          details: "Invalid user context",
-        },
-        metadata: {
-          timestamp: now.toISOString(),
-        },
-      };
-    }
-
-    // 5. Create otp
-    const otp = await otpGen({ length: 6, type: "numeric" });
-    const hashedOtp = await HashString(otp);
     if (existingOtp) {
+      //    -> if exisiting and not expired
+      //        -> reuse otp (or regenerate otp if Redis missing, UPDATE)
+      if (new Date(existingOtp.expires_at) > now) {
+        hashedOtp = existingOtp.otp_code;
+        const plainOtpKey = plainOtpKeyByPhone(existingOtp.phone_number);
+        const plainOtp = await client.get(plainOtpKey);
+        if (plainOtp) {
+          rawOtp = plainOtp;
+        } else {
+          rawOtp = await generateOtpUtil();
+          hashedOtp = await HashString(rawOtp);
+          const plainOtpKey = plainOtpKeyByPhone(existingOtp.phone_number);
+          await client.set(plainOtpKey, rawOtp, {
+            EX: OTP_EXPIRES_MINUTES * 60,
+          });
+          const { error } = await supabaseAdmin
+            .from("otps")
+            .update({
+              otp_code: hashedOtp,
+              expires_at: expires,
+              attempts: 0,
+              status: "pending",
+            })
+            .eq("phone_number", validatedPhoneNumber)
+            .eq("id", existingOtp.id)
+            .select("id")
+            .single();
+
+          if (error) {
+            return errorResponseUtil(
+              "Error updating otp",
+              {
+                code: "OTP_UPDATE_ERROR",
+                details: isDev
+                  ? (error.message ?? "Error updating otp")
+                  : "Error updating otp",
+              },
+              {
+                phoneNumber: isDev
+                  ? validatedPhoneNumber
+                  : maskPhone(validatedPhoneNumber),
+              },
+            );
+          }
+        }
+      } else {
+        // -> if existing and expired
+        // -> regenerate otp + UPDATE
+        rawOtp = await generateOtpUtil();
+        hashedOtp = await HashString(rawOtp);
+        const plainOtpKey = plainOtpKeyByPhone(existingOtp.phone_number);
+        await client.set(plainOtpKey, rawOtp, { EX: OTP_EXPIRES_MINUTES * 60 });
+        const { error } = await supabaseAdmin
+          .from("otps")
+          .update({
+            otp_code: hashedOtp,
+            expires_at: expires,
+            attempts: 0,
+            status: "pending",
+          })
+          .eq("phone_number", validatedPhoneNumber)
+          .eq("id", existingOtp.id)
+          .select("id")
+          .single();
+
+        if (error) {
+          return errorResponseUtil(
+            "Error updating otp",
+            {
+              code: "OTP_UPDATE_ERROR",
+              details: isDev
+                ? (error.message ?? "Error updating otp")
+                : "Error updating otp",
+            },
+            {
+              phoneNumber: isDev
+                ? validatedPhoneNumber
+                : maskPhone(validatedPhoneNumber),
+            },
+          );
+        }
+      }
+    } else {
+      // -> if no existing otp
+      // -> create new otp (INSERT)
+      rawOtp = await generateOtpUtil();
+      hashedOtp = await HashString(rawOtp);
+      const plainOtpKey = plainOtpKeyByPhone(user.phone_number);
+      await client.set(plainOtpKey, rawOtp, { EX: OTP_EXPIRES_MINUTES * 60 });
       const { error } = await supabaseAdmin
         .from("otps")
-        .update({
+        .insert({
           otp_code: hashedOtp,
           expires_at: expires,
           attempts: 0,
           status: "pending",
+          phone_number: validatedPhoneNumber,
+          user_id: user.id
         })
-        .eq("phone_number", validatedPhoneNumber)
-        .eq("type", validatedType)
-        .eq("id", existingOtp.id)
-        .select()
+        .select("id")
         .single();
 
       if (error) {
-        return {
-          success: false,
-          message: "Error updating otp",
-          data: null,
-          error: {
+        createOtp.error( "Error creating otp", {
+            error,
+            phoneNumber: isDev
+              ? validatedPhoneNumber
+              : maskPhone(validatedPhoneNumber),
+          })
+        return errorResponseUtil(
+          "Error creating otp",
+          {
             code: "OTP_UPDATE_ERROR",
             details: isDev
               ? (error.message ?? "Error creating otp")
-              : "Error updating otp",
+              : "Error creating otp",
           },
-          metadata: {
-            timestamp: now.toISOString(),
-            phoneNumber: isDev ? validatedPhoneNumber : undefined,
+          {
+            phoneNumber: isDev
+              ? validatedPhoneNumber
+              : maskPhone(validatedPhoneNumber),
           },
-        };
+        );
       }
-
-      const smsResult = await dispatchOtpService(
-        channel,
-        existingOtp.id,
-        validatedPhoneNumber,
-        otp,
-        validatedType,
-        now,
-      );
-      if (smsResult.success) {
-        await supabaseAdmin
-          .from("users")
-          .update({
-            last_otp_requested_at: now.toISOString(),
-          })
-          .eq("id", userId);
-
-        return smsResult;
-      }
-      return smsResult;
     }
 
-    const { data, error } = await supabaseAdmin
-      .from("otps")
-      .insert({
-        user_id: userId,
-        otp_code: hashedOtp,
-        phone_number: validatedPhoneNumber,
-        expires_at: expires,
-        type: validatedType,
-        attempts: 0,
-        status: "pending",
-      })
-      .select("id, phone_number, expires_at, type")
-      .single();
-
-    if (error) {
-      createOtp.error("Error creating otp", {
-        reason: error.message,
-        phoneNumber: maskPhone(validatedPhoneNumber),
+    if (!rawOtp) {
+      createOtp.error("rawOtp missing before dispatch", {
+        phone: maskPhone(validatedPhoneNumber),
       });
-      return {
-        success: false,
-        message: "Error creating otp",
-        data: null,
-        error: {
-          code: "OTP_CREATION_ERROR",
-          details: isDev
-            ? (error.message ?? "Error creating otp")
-            : "Error creating otp",
-        },
-        metadata: {
-          timestamp: now.toISOString(),
-          phoneNumber: isDev ? validatedPhoneNumber : undefined,
-        },
-      };
+      return errorResponseUtil(
+        "Unable to generate OTP",
+        { code: "OTP_GENERATION_FAILED", details: "rawOtp missing" },
+        { phoneNumber: maskPhone(validatedPhoneNumber) },
+      );
     }
-
-    // 6. Send otp to caller
-    const smsResult = await dispatchOtpService(
-      channel,
-      data.id,
-      validatedPhoneNumber,
-      otp,
-      validatedType,
-      now,
-    );
+    // 5. Dispatch otp to caller
+    const smsResult = await dispatchOtpService(validatedPhoneNumber, rawOtp);
     if (smsResult.success) {
-      const hourExpired = isHourWindowExpired(
-        user?.otp_hour_window_started_at,
-        now,
-      );
-      const dayExpired = isDayWindowExpired(
-        user?.otp_day_window_started_at,
-        now,
-      );
-
-      const hourlyCount = hourExpired ? 0 : (user?.otp_requests_last_hour ?? 0);
-      const dailyCount = dayExpired ? 0 : (user?.otp_requests_today ?? 0);
-
       await supabaseAdmin
         .from("users")
         .update({
           last_otp_requested_at: now.toISOString(),
-          otp_requests_last_hour: hourlyCount + 1,
-          otp_hour_window_started_at: hourExpired
-            ? now.toISOString()
-            : user?.otp_hour_window_started_at,
-          otp_requests_today: dailyCount + 1,
-          otp_day_window_started_at: dayExpired
-            ? now.toISOString()
-            : user?.otp_day_window_started_at,
         })
         .eq("id", userId);
 
@@ -286,37 +273,27 @@ const createOtpService = async (
         reason: error.message,
         phoneNumber: maskPhone(phoneNumber),
       });
-      return {
-        success: false,
-        message: error.message || "Otp data validation failed",
-        data: null,
-        error: {
+      return errorResponseUtil(
+        error.message || "Otp data validation failed",
+        {
           code: "VALIDATION_ERROR",
           details: "Otp data validation failed",
         },
-        metadata: {
-          timestamp: now.toISOString(),
-          phoneNumber: isDev ? phoneNumber : undefined,
-        },
-      };
+        { phoneNumber: isDev ? phoneNumber : maskPhone(phoneNumber) },
+      );
     }
 
     createOtp.error("Internal server error", {
       phoneNumber: maskPhone(phoneNumber),
     });
-    return {
-      success: false,
-      message: "Internal server error",
-      data: null,
-      error: {
+    return errorResponseUtil(
+      "Internal server error",
+      {
         code: "INTERNAL_ERROR",
         details: "Unexpected error while creating otp",
       },
-      metadata: {
-        timestamp: now.toISOString(),
-        phoneNumber: isDev ? phoneNumber : undefined,
-      },
-    };
+      { phoneNumber: isDev ? phoneNumber : maskPhone(phoneNumber) },
+    );
   }
 };
 

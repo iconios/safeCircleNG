@@ -6,26 +6,25 @@
 3. Send result to caller
 */
 
-import { supabaseAdmin } from "../../config/supabase.ts";
-import { ReadUserDTO } from "../../types/user.types.ts";
+import { supabaseAdmin } from "../../config/supabase";
+import { ReadUserDTO } from "../../types/user.types";
+import {
+  errorResponseUtil,
+  successResponseUtil,
+} from "../../utils/responses.util";
 
 const ReadUserService = async (userId: string) => {
   try {
     // 1. Get and validate the user id
     if (!userId?.trim()) {
-      return {
-        success: false,
-        message: "User Id required",
-        data: {},
-        error: {
+      return errorResponseUtil(
+        "User Id required",
+        {
           code: "MISSING_PARAMETER",
           details: "User Id is required",
         },
-        metadata: {
-          timestamp: new Date().toISOString(),
-          userId: "",
-        },
-      };
+        { userId: "" },
+      );
     }
 
     // 2. Fetch the user details from the database and select non-sensitive data
@@ -38,46 +37,31 @@ const ReadUserService = async (userId: string) => {
       .single();
     if (error) {
       const errorMessage = error.message || "Error fetching user";
-      return {
-        success: false,
-        message: errorMessage,
-        data: {},
-        error: {
+      return errorResponseUtil(
+        errorMessage,
+        {
           code: error.code || "DATABASE_ERROR",
           details: error.details || "Error fetching user from database",
         },
-        metadata: {
-          timestamp: new Date().toISOString(),
-          userId,
-        },
-      };
+        { userId },
+      );
     }
 
     // 3. Send result to caller
-    return {
-      success: true,
-      message: "User fetched successfully",
-      data: data as ReadUserDTO,
-      error: null,
-      metadata: {
-        timestamp: new Date().toISOString(),
-        userId,
-      },
-    };
+    return successResponseUtil(
+      "User fetched successfully",
+      data as ReadUserDTO,
+      { userId },
+    );
   } catch (error: any) {
-    return {
-      success: false,
-      message: "Unexpected server error",
-      data: {},
-      error: {
+    return errorResponseUtil(
+      "Unexpected server error",
+      {
         code: "INTERNAL_SERVER_ERROR",
         details: error?.message || "Unknown error",
       },
-      metadata: {
-        timestamp: new Date().toISOString(),
-        userId,
-      },
-    };
+      { userId },
+    );
   }
 };
 
