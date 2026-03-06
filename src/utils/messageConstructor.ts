@@ -1,14 +1,23 @@
 import { OTP_EXPIRES_MINUTES } from "../config/auth";
 import { messageType } from "../types/messageLogs.types";
 
-const messageConstructor = (
-  messageType: messageType,
-  circleMemberName?: string,
-  destinationName?: string,
-  webLink?: string,
-  userName?: string,
-  otp?: string,
-) => {
+type MessagePayload = {
+  messageType: messageType;
+  circleMemberName?: string;
+  destinationName?: string;
+  webLink?: string;
+  userName?: string;
+  otp?: string;
+};
+
+const messageConstructor = ({
+  messageType,
+  circleMemberName,
+  destinationName,
+  webLink,
+  userName,
+  otp,
+}: MessagePayload) => {
   switch (messageType) {
     case "journey_start":
       return `Hi ${circleMemberName}, ${userName ?? "SafeCircle user"}  has started their journey to ${destinationName}. You can track their safe progress here: ${webLink}`;

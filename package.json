@@ -21,6 +21,7 @@
   "author": "Ademuyiwa Ikotun",
   "license": "ISC",
   "dependencies": {
+    "@great-detail/whatsapp": "^8.4.0",
     "@supabase/supabase-js": "^2.89.0",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",

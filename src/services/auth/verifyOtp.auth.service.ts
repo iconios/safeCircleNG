@@ -33,10 +33,11 @@
    d. Update user:
       - phone_verified = true
       - status = "active"
-7. Create Supabase Auth session (CRITICAL STEP)
+7. Create a free subscription
+8. Create Supabase Auth session (CRITICAL STEP)
    a. Use jwt:
       - create token
-8. Return token to client
+9. Return token to client
    a. User is now authenticated
 */
 

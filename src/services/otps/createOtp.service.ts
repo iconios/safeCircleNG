@@ -215,18 +215,18 @@ const createOtpService = async (phoneNumber: phoneNumber, userId: string) => {
           attempts: 0,
           status: "pending",
           phone_number: validatedPhoneNumber,
-          user_id: user.id
+          user_id: user.id,
         })
         .select("id")
         .single();
 
       if (error) {
-        createOtp.error( "Error creating otp", {
-            error,
-            phoneNumber: isDev
-              ? validatedPhoneNumber
-              : maskPhone(validatedPhoneNumber),
-          })
+        createOtp.error("Error creating otp", {
+          error,
+          phoneNumber: isDev
+            ? validatedPhoneNumber
+            : maskPhone(validatedPhoneNumber),
+        });
         return errorResponseUtil(
           "Error creating otp",
           {

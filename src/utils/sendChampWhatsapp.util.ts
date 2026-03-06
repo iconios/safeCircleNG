@@ -1,45 +1,54 @@
 // providers/sendchampWhatsapp.js
-import axios from "axios";
 import { randomUUID } from "node:crypto";
 import logger from "../config/logger";
 import { maskPhone } from "./maskPhone.util";
+import messageConstructor from "./messageConstructor";
+import { errorResponseUtil } from "./responses.util";
+import axios from "axios";
 
 export async function sendWhatsappSendChamp(phone: string, otp: string) {
   const now = new Date();
+  const SENDCHAMP_BASE_URL = process.env.SENDCHAMP_BASE_URL;
+  const SENDCHAMP_PUBLIC_KEY = process.env.SENDCHAMP_PUBLIC_KEY;
+  if (!SENDCHAMP_BASE_URL || !SENDCHAMP_PUBLIC_KEY)
+    throw new Error("Sendchamp details missing");
+
   const sendWhatsappLogger = logger.child({
-    service: "createOtpService",
+    service: "sendWhatsappSendChamp",
     requestId: randomUUID(),
+    provider: "sendChamp",
+    channel: "whatsapp",
   });
 
   try {
     const res = await axios.post(
-      `${process.env.SENDCHAMP_BASE_URL}/whatsapp/send`,
+      `${SENDCHAMP_BASE_URL}/whatsapp/send`,
       {
-        to: phone,
-        template_code: "otp_template",
-        parameters: { code: otp },
+        to: phone.startsWith("+") ? phone : `+${phone}`,
+        message: messageConstructor({ messageType: "verification", otp }),
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.SENDCHAMP_API_KEY}`,
-          "Content-Type": "application/json"
+          Authorization: `Bearer ${SENDCHAMP_PUBLIC_KEY}`,
+          "Content-Type": "application/json",
         },
-        timeout: 8000,
+        timeout: 10_000,
       },
     );
 
-    sendWhatsappLogger.info("SMS sent successfully:", {
+    const isSent = res?.data?.status === "success";
+
+    sendWhatsappLogger.info("Whatsapp otp dispatch attempt:", {
       phoneNumber: maskPhone(phone),
-      provider: "sendChamp",
-      channel: "whatsapp",
+      success: isSent,
+      providerResponse: res?.data,
     });
 
-    const isSent = res.data?.status === "success";
     return {
       success: isSent,
       message: isSent
-        ? `SMS sent successfully to ${phone} via whatsapp`
-        : `SMS failed to ${phone} via whatsapp`,
+        ? `Whatsapp OTP sent successfully to ${phone}`
+        : `Whatsapp OTP failed to send to ${phone}`,
       data: null,
       error: null,
       metadata: {
@@ -47,23 +56,17 @@ export async function sendWhatsappSendChamp(phone: string, otp: string) {
       },
     };
   } catch (error) {
-    sendWhatsappLogger.error("sendSMSUtil error", {
+    sendWhatsappLogger.error("sendWhatsappSendChamp error", {
       error,
       phoneNumber: maskPhone(phone),
-      provider: "sendChamp",
-      channel: "whatsapp",
     });
-    return {
-      success: false,
-      message: `Error sending sms to ${phone} via whatsapp`,
-      data: null,
-      error: {
+    return errorResponseUtil(
+      `Error sending whatsapp to ${phone} via whatsapp`,
+      {
         code: "WHATSAPP_OTP_SENDING_FAILED",
-        details: "failed",
+        provider: "sendchamp",
       },
-      metadata: {
-        timestamp: now.toISOString(),
-      },
-    };
+      {},
+    );
   }
 }

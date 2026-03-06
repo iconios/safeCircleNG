@@ -19,13 +19,15 @@ import { isDev } from "../../utils/devEnv.util";
 import SendSMSUtil from "../../utils/sendSMS.util";
 import messageConstructor from "../../utils/messageConstructor";
 import dayjs from "../../config/dayjsConfig";
-import { sendWhatsappSendChamp } from "../../utils/sendChampWhatsapp.util";
 import { sendVoiceOtp } from "../../utils/termiiVoice.util";
 import { maskPhone } from "../../utils/maskPhone.util";
 import {
   errorResponseUtil,
   successResponseUtil,
 } from "../../utils/responses.util";
+import { sendWhatsappOtp } from "../../utils/sendWhatsapp.util";
+
+const WHATSAPP_PHONENUMBERID = process.env.WHATSAPP_PHONENUMBERID;
 
 const NIGHT_START = 20; // 8pm
 const NIGHT_END = 8; // 8am
@@ -41,7 +43,10 @@ const dispatchOtpService = async (phoneNumber: string, otp: string) => {
     requestId: randomUUID(),
   });
 
-  const message = messageConstructor("verification", otp);
+  const message = messageConstructor({
+    messageType: "verification", 
+    otp});
+  if (!phoneNumber || !WHATSAPP_PHONENUMBERID) throw new Error("Dispatch otp service inputs missing")
 
   // sms
   if (!isNightTime()) {
@@ -65,8 +70,8 @@ const dispatchOtpService = async (phoneNumber: string, otp: string) => {
     phone: maskPhone(phoneNumber),
   });
   try {
-    const waRes = await sendWhatsappSendChamp(phoneNumber, otp);
-    if (waRes) {
+    const whatsappRes = await sendWhatsappOtp(phoneNumber, otp);
+    if (whatsappRes) {
       return successResponseUtil(
         "Otp created and sent via whatsapp",
         {},

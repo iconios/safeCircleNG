@@ -8,15 +8,15 @@
 */
 
 import { ZodError } from "zod";
-import validateUser from "../../utils/validateUser.util.ts";
+import validateUser from "../../utils/validateUser.util";
 import {
   subscriptionInputDTO,
   subscriptionInputSchema,
   subscriptionInsert,
   subscriptionInsertSchema,
-} from "../../types/subscription.types.ts";
-import { supabaseAdmin } from "../../config/supabase.ts";
-import { isDev } from "../../utils/devEnv.util.ts";
+} from "../../types/subscription.types";
+import { supabaseAdmin } from "../../config/supabase";
+import { isDev } from "../../utils/devEnv.util";
 
 const createSubscriptionService = async (
   subscriptionInputData: subscriptionInputDTO,

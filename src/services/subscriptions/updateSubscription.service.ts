@@ -13,10 +13,10 @@ import {
   subscriptionInputSchema,
   subscriptionUpdate,
   subscriptionUpdateSchema,
-} from "../../types/subscription.types.ts";
-import validateUser from "../../utils/validateUser.util.ts";
-import { isDev } from "../../utils/devEnv.util.ts";
-import { supabaseAdmin } from "../../config/supabase.ts";
+} from "../../types/subscription.types";
+import validateUser from "../../utils/validateUser.util";
+import { isDev } from "../../utils/devEnv.util";
+import { supabaseAdmin } from "../../config/supabase";
 
 const updateSubscriptionService = async (
   subscriptionInputData: subscriptionInputDTO,

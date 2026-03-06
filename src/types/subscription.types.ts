@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { timestamp } from "./emergency.types.ts";
+import { timestamp } from "./emergency.types";
 
 const tierEnum = z.enum(["free", "family", "corporate"]);
 const statusEnum = z.enum(["active", "cancelled", "expired", "pending"]);

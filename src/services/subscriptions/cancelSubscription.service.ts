@@ -7,13 +7,13 @@
 */
 
 import { ZodError } from "zod";
-import { isDev } from "../../utils/devEnv.util.ts";
+import { isDev } from "../../utils/devEnv.util";
 import {
   subscriptionInputDTO,
   subscriptionInputSchema,
-} from "../../types/subscription.types.ts";
-import validateUser from "../../utils/validateUser.util.ts";
-import { supabaseAdmin } from "../../config/supabase.ts";
+} from "../../types/subscription.types";
+import validateUser from "../../utils/validateUser.util";
+import { supabaseAdmin } from "../../config/supabase";
 
 const cancelSubscriptionService = async (
   subscriptionInputData: subscriptionInputDTO,
