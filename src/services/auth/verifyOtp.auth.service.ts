@@ -56,6 +56,7 @@ import {
   errorResponseUtil,
   successResponseUtil,
 } from "../../utils/responses.util";
+import createSubscriptionService from "../subscriptions/createSubscription.service";
 
 export const updateLastOtpRequestAt = async (id: string, at: Date) => {
   try {
@@ -318,6 +319,24 @@ const VerifyOtpAuthService = async (verifyOtpData: VerifyOtpDataDTO) => {
       .eq("id", userData.id);
 
     await supabaseAdmin.from("otps").delete().eq("id", userOtp.id);
+
+    // 7. Create a free subscription
+    const start_date = now;
+    const end_date = start_date.setDate(start_date.getDate() + 30).toString();
+    const createdSubscription = await createSubscriptionService(userData.id, {
+      tier: "free",
+      status: "active",
+      start_date: now.toISOString(),
+      end_date,
+      period_type: "monthly",
+      max_circle_members: 5,
+    });
+    if (createdSubscription.error) {
+      return errorResponseUtil(createdSubscription.message, {
+        code: createdSubscription.error.code,
+        details: createdSubscription.error.details,
+      });
+    }
 
     // 7. Create Supabase Auth session
     //  a. Use jwt:

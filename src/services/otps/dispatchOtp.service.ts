@@ -44,9 +44,11 @@ const dispatchOtpService = async (phoneNumber: string, otp: string) => {
   });
 
   const message = messageConstructor({
-    messageType: "verification", 
-    otp});
-  if (!phoneNumber || !WHATSAPP_PHONENUMBERID) throw new Error("Dispatch otp service inputs missing")
+    messageType: "verification",
+    otp,
+  });
+  if (!phoneNumber || !WHATSAPP_PHONENUMBERID)
+    throw new Error("Dispatch otp service inputs missing");
 
   // sms
   if (!isNightTime()) {

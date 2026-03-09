@@ -12,6 +12,7 @@ import { AuthRequest } from "../types/auth.types";
 import {
   alertMessageType,
   CreateCircleDataDTO,
+  CreateCircleListDTO,
   SafetyCircleUpdate,
 } from "../types/safetyCircle.types";
 import createCircleMemberService from "../services/safetyCircles/createCircle.service";
@@ -19,6 +20,7 @@ import readCircleMemberService from "../services/safetyCircles/readCircle.servic
 import updateCircleMemberService from "../services/safetyCircles/updateCircle.service";
 import deleteCircleMemberService from "../services/safetyCircles/deleteCircle.service";
 import alertCircleMembersService from "../services/safetyCircles/alertCircle.service";
+import createCircleMembersListService from "../services/safetyCircles/createCircleList.service";
 
 // Create Safety Circle Controller
 const createSafetyCircleController = async (
@@ -47,6 +49,53 @@ const createSafetyCircleController = async (
 
     // 2. Pass the data to the service layer for processing
     const result = await createCircleMemberService(userId, circleData);
+
+    // 3. Handle success and error responses
+    if (!result.success) {
+      switch (result.error?.code) {
+        case "VALIDATION_ERROR":
+          return res.status(422).json(result);
+        case "CIRCLE_MEMBER_CREATION_ERROR":
+        case "INTERNAL_ERROR":
+          return res.status(500).json(result);
+        default:
+          return res.status(400).json(result);
+      }
+    }
+
+    return res.status(201).json(result);
+  } catch (error) {
+    resServerError(res, error);
+  }
+};
+
+// Create Safety Circle Controller
+const createSafetyCircleListController = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    // 1. Accept and validate user input
+    const userId = req.userId as string;
+
+    const circleData = req.body as CreateCircleListDTO;
+    if (circleData.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Circle data is required",
+        data: null,
+        error: {
+          code: "CIRCLE_DATA_REQUIRED",
+          details: "Circle data is required",
+        },
+        metadata: {
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    // 2. Pass the data to the service layer for processing
+    const result = await createCircleMembersListService(userId, circleData);
 
     // 3. Handle success and error responses
     if (!result.success) {
@@ -289,6 +338,7 @@ const alertCircleMembersController = async (
 
 export {
   createSafetyCircleController,
+  createSafetyCircleListController,
   readSafetyCircleController,
   updateSafetyCircleController,
   deleteSafetyCircleController,

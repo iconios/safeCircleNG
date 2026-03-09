@@ -2,6 +2,7 @@ import express from "express";
 import {
   alertCircleMembersController,
   createSafetyCircleController,
+  createSafetyCircleListController,
   deleteSafetyCircleController,
   readSafetyCircleController,
   updateSafetyCircleController,
@@ -15,6 +16,7 @@ safetyCircleRouter.use(authenticateToken);
 
 // Safety Circle Routes
 safetyCircleRouter.post("/", createSafetyCircleController);
+safetyCircleRouter.post("/list", createSafetyCircleListController);
 safetyCircleRouter.get("/", readSafetyCircleController);
 safetyCircleRouter.patch("/:safetyCircleId", updateSafetyCircleController);
 safetyCircleRouter.delete("/:safetyCircleId", deleteSafetyCircleController);

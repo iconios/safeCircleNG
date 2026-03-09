@@ -3,8 +3,6 @@
 
 */
 
-const DeleteUserService = async (user_id: string) => {
-
-}
+const DeleteUserService = async (user_id: string) => {};
 
 export default DeleteUserService;
